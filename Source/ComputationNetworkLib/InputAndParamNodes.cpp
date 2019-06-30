@@ -173,7 +173,7 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
 
 
     if (configp->Exists(L"weightFile"))
-        m_weightBinPath = (wstring)configp->Get(L"weightFile");
+        InitWeightFromBinFile((wstring)configp->Get(L"weightFile"));
 }
 
 // helper to cast a shape possibly given as a single size_t to a TensorShape object
