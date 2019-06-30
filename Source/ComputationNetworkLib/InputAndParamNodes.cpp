@@ -444,15 +444,22 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
     }
     else
     {
+        int processNum = Globals::GetProcessNum();
+        int rank = Globals::GetRank();
+        if (numCols % processNum != 0)
+            LogicError("LearnableParameter: numCols mod processNum != 0.");
+        int startIndex = rank * (numCols / processNum);
+        int endIndex = (rank + 1) * (numCols / processNum) - 1;
         for (int i(0); i < numRows; ++i)
         {
             for (int j(0); j < numCols; ++j)
             {
                 binFile >> weightElement;
-                array[j * numRows + i] = (ElemType)weightElement;
+                if (j >= startIndex && j <= endIndex)
+                    array[(j - startIndex) * numRows + i] = (ElemType)weightElement;
             }
         }
-        Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
+        Value().SetValue(numRows, numCols / processNum, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
     }
 
     binFile.close();
