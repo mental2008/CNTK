@@ -172,7 +172,7 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
         fprintf(stderr, "%ls: Initializating Parameter[%s] as %ls later when dimensions are fully known.\n", NodeDescription().c_str(), string(GetSampleLayout()).c_str(), m_initString.c_str());
 
 
-    if (configp->Exists(L"weightFile"))
+    if (configp->Exists(L"weightFile") && (wstring)configp->Get(L"weightFile") != L"")
         InitWeightFromBinFile((wstring)configp->Get(L"weightFile"));
 }
 
