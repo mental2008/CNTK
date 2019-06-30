@@ -96,6 +96,8 @@ public:
     // initialize by reading a matrix from a text file
     void InitFromFile(const std::wstring& initFromFilePath);
 
+    void InitWeightFromBinFile(const std::wstring& initFromBinFilePath);
+
 public:
     // initialize with random numbers
     // If 'initOnCPUOnly' then always init on CPU, making initialization consistent across both (for testing).

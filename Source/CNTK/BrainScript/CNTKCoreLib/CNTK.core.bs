@@ -74,18 +74,18 @@ DistributedFullyConnectedLayer_v2 {inDim, outDim, init='glorotUniform', initValu
 
 # DistributedAdditiveFullConnectionLayer -- create a distributed label-specific-add full connection layer
 # The output is decomposed. The next layer must deal with the decomposed output tensors
-DistributedAdditiveFullConnectionLayer {inDim, outDim, weightNormalize=true, bias=0, scale=1, init='glorotUniform', initValueScale=1} =
+DistributedAdditiveFullConnectionLayer {inDim, outDim, weightNormalize=true, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
 {
-    W = ParameterTensor {_ConcatArrays (inDim, outDim), init=init, initValueScale=initValueScale, distribute=true}
+    W = ParameterTensor {_ConcatArrays (inDim, outDim), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, distribute=true, weightFile=weightFile}
 
     apply (labelSequence, outProbVectorSequence) = DistributedAdditiveFullConnection(labelSequence, W, outProbVectorSequence, weightNormalize=weightNormalize, bias=bias, scale=scale)
 }.apply
 
 # DistributedArcMarginProductLayer -- create a distributed arc margin product layer
 # The output is decomposed. The next layer must deal with the decomposed output tensors
-DistributedArcMarginProductLayer {inDim, outDim, bias=0, scale=1, init='glorotUniform', initValueScale=1} =
+DistributedArcMarginProductLayer {inDim, outDim, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
 {
-    W = ParameterTensor {_ConcatArrays (inDim, outDim), init=init, initValueScale=initValueScale, distribute=true}
+    W = ParameterTensor {_ConcatArrays (inDim, outDim), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, distribute=true, weightFile=weightFile}
 
     apply (labelSequence, outProbVectorSequence) = DistributedArcMarginProduct(labelSequence, W, outProbVectorSequence, bias=bias, scale=scale)
 }.apply
@@ -108,18 +108,18 @@ FeatureNormalizeLayer {featureNormalizeType=2} =
 
 # AdditiveFullConnectionLayer -- create a label-specific-add full connection layer
 # Note: outputDimension may describe a tensor as well.
-AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=true, bias=0, annealBias=false, biasBase=0, biasGamma=0, biasPower=1, biasMin=0, biasMax=0, init='glorotUniform', initValueScale=1} =
+AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=true, bias=0, annealBias=false, biasBase=0, biasGamma=0, biasPower=1, biasMin=0, biasMax=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
 {
-    W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), init=init, initValueScale=initValueScale}
+    W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, weightFile=weightFile}
 
-    apply (labelSequence, outProbVectorSequence) = AdditiveFullConnection(labelSequence, outProbVectorSequence, W, outputDimension=outputDimension, weightNormalize=weightNormalize, bias=bias, annealBias=annealBias, biasBase=biasBase, biasGamma=biasGamma, biasPower=biasPower, biasMin=biasMin, biasMax=biasMax)
+    apply (labelSequence, outProbVectorSequence) = AdditiveFullConnection(labelSequence, outProbVectorSequence, W, outputDimension=outputDimension, weightNormalize=weightNormalize, bias=bias, annealBias=annealBias, biasBase=biasBase, biasGamma=biasGamma, biasPower=biasPower, biasMin=biasMin, biasMax=biasMax, weightFile="")
 }.apply
 
 # ArcMarginProductLayer -- create a arc margin product layer
 # Note: outputDimension may describe a tensor as well.
-ArcMarginProductLayer {inputDimension, outputDimension, bias=0, init='glorotUniform', initValueScale=1} =
+ArcMarginProductLayer {inputDimension, outputDimension, bias=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
 {
-    W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), init=init, initValueScale=initValueScale}
+    W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, weightFile=weightFile}
 
     apply (labelSequence, outProbVectorSequence) = ArcMarginProduct(labelSequence, outProbVectorSequence, W, bias=bias)
 }.apply
@@ -172,7 +172,7 @@ ConvolutionalLayer {numOutputChannels,   # e.g. (1) or BS.Constants.None
                     lowerPad = 0, upperPad = 0,
                     dilation = 1,
                     maxTempMemSizeInSamples = 0,
-					disableRegularization = false} =
+                    disableRegularization = false} =
 {
     reductionRank = 1 # TODO: shall become an optional parameter
     outputChannelsShape = _AsArray (numOutputChannels)

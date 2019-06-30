@@ -10,6 +10,8 @@
 #include "Globals.h"     // for ShouldForceConstantRandomSeed()
 
 #include <string>
+#include <fstream>
+using namespace std;
 
 //
 // Note: Some template specializations have not been implemented in this file.
@@ -168,6 +170,14 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
     auto traceLevelParam = configp->Find(L"traceLevel");
     if (traceLevelParam && (int)*traceLevelParam > 0 && !m_initString.empty())
         fprintf(stderr, "%ls: Initializating Parameter[%s] as %ls later when dimensions are fully known.\n", NodeDescription().c_str(), string(GetSampleLayout()).c_str(), m_initString.c_str());
+
+
+    if (configp->Exists(L"weightFile"))
+    {
+        wstring binWeightFile = configp->Get(L"weightFile");
+        if (binWeightFile != L"")
+            InitWeightFromBinFile(binWeightFile);
+    }
 }
 
 // helper to cast a shape possibly given as a single size_t to a TensorShape object
@@ -406,6 +416,50 @@ void LearnableParameter<ElemType>::InitFromFile(const wstring& initFromFilePath)
     auto array = File::LoadMatrixFromTextFile<ElemType>(initFromFilePath, numRows, numCols);
     InitFromArray(array, numRows, numCols);
 }
+
+
+template <class ElemType>
+void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& initFromBinFilePath)
+{
+    int numRows, numCols;
+    ifstream binFile(initFromBinFilePath, ios::in);
+    if (!binFile)
+        LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
+    binFile >> numRows >> numCols;
+    vector<ElemType> array;
+    float weightElement;
+    array.resize(numRows * numCols);
+
+    if (!this->m_distribute)
+    {
+        for (int i(0); i < numRows; ++i)
+        {
+            for (int j(0); j < numCols; ++j)
+            {
+                binFile >> weightElement;
+                array[i * numCols + j] = (ElemType)weightElement;
+            }
+        }
+        Value().SetValue(numCols, numRows, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
+        VerifyDataSize(Value());
+    }
+    else
+    {
+        for (int i(0); i < numCols; ++i)
+        {
+            for (int j(0); j < numRows; ++j)
+            {
+                binFile >> weightElement;
+                array[j * numCols + i] = (ElemType)weightElement;
+            }
+        }
+        Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
+        VerifyDataSize(Value());
+    }
+
+    binFile.close();
+}
+
 
 // initialize by reading a matrix from a text file
 template <class ElemType>
