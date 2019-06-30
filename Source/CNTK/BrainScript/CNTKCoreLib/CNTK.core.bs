@@ -74,7 +74,7 @@ DistributedFullyConnectedLayer_v2 {inDim, outDim, init='glorotUniform', initValu
 
 # DistributedAdditiveFullConnectionLayer -- create a distributed label-specific-add full connection layer
 # The output is decomposed. The next layer must deal with the decomposed output tensors
-DistributedAdditiveFullConnectionLayer {inDim, outDim, weightNormalize=true, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
+DistributedAdditiveFullConnectionLayer {inDim, outDim, weightNormalize=true, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=''} =
 {
     W = ParameterTensor {_ConcatArrays (inDim, outDim), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, distribute=true, weightFile=weightFile}
 
@@ -83,7 +83,7 @@ DistributedAdditiveFullConnectionLayer {inDim, outDim, weightNormalize=true, bia
 
 # DistributedArcMarginProductLayer -- create a distributed arc margin product layer
 # The output is decomposed. The next layer must deal with the decomposed output tensors
-DistributedArcMarginProductLayer {inDim, outDim, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
+DistributedArcMarginProductLayer {inDim, outDim, bias=0, scale=1, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=''} =
 {
     W = ParameterTensor {_ConcatArrays (inDim, outDim), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, distribute=true, weightFile=weightFile}
 
@@ -108,7 +108,7 @@ FeatureNormalizeLayer {featureNormalizeType=2} =
 
 # AdditiveFullConnectionLayer -- create a label-specific-add full connection layer
 # Note: outputDimension may describe a tensor as well.
-AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=true, bias=0, annealBias=false, biasBase=0, biasGamma=0, biasPower=1, biasMin=0, biasMax=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
+AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=true, bias=0, annealBias=false, biasBase=0, biasGamma=0, biasPower=1, biasMin=0, biasMax=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=''} =
 {
     W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, weightFile=weightFile}
 
@@ -117,7 +117,7 @@ AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=tr
 
 # ArcMarginProductLayer -- create a arc margin product layer
 # Note: outputDimension may describe a tensor as well.
-ArcMarginProductLayer {inputDimension, outputDimension, bias=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=""} =
+ArcMarginProductLayer {inputDimension, outputDimension, bias=0, init='glorotUniform', initValueScale=1, learningRateMultiplier=1.0, weightFile=''} =
 {
     W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, weightFile=weightFile}
 
