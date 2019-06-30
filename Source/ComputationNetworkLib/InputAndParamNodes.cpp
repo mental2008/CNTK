@@ -173,11 +173,7 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
 
 
     if (configp->Exists(L"weightFile"))
-    {
-        wstring binWeightFile = configp->Get(L"weightFile");
-        if (binWeightFile != L"")
-            InitWeightFromBinFile(binWeightFile);
-    }
+        m_weightBinPath = (wstring)configp->Get(L"weightFile");
 }
 
 // helper to cast a shape possibly given as a single size_t to a TensorShape object
@@ -432,6 +428,8 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
 
     if (!this->m_distribute)
     {
+        if (Value().GetNumRows() != numCols && Value().GetNumCols() != numRows)
+            LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numCols, numRows);
         for (int i(0); i < numRows; ++i)
         {
             for (int j(0); j < numCols; ++j)
@@ -450,6 +448,8 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
             LogicError("LearnableParameter: numCols mod processNum != 0.");
         int startIndex = rank * (numCols / processNum);
         int endIndex = (rank + 1) * (numCols / processNum) - 1;
+        if (Value().GetNumRows() != numRows && Value().GetNumCols() != numCols / processNum)
+            LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols / processNum);
         for (int i(0); i < numRows; ++i)
         {
             for (int j(0); j < numCols; ++j)
