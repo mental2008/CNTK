@@ -53,6 +53,7 @@ public:
         m_initValue = 0;
         m_regMultiplier = 1.0f; // enable reg in update by default
         m_gatheredParams = NULL;
+        m_weightBinPath = L"";
     }
     LearnableParameter(DEVICEID_TYPE deviceId, const wstring& name, const TensorShape& shape, const ScriptableObjects::IConfigRecordPtr configp = NULL) :
         LearnableParameter(deviceId, name)
@@ -211,6 +212,7 @@ private:
 public:
     bool m_isVector;
     Matrix<ElemType>* m_gatheredParams;
+    std::wstring m_weightBinPath;
 };
 
 // -----------------------------------------------------------------------
