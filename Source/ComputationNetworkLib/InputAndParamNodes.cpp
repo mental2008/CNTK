@@ -441,20 +441,18 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
             }
         }
         Value().SetValue(numCols, numRows, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
-        VerifyDataSize(Value());
     }
     else
     {
-        for (int i(0); i < numCols; ++i)
+        for (int i(0); i < numRows; ++i)
         {
-            for (int j(0); j < numRows; ++j)
+            for (int j(0); j < numCols; ++j)
             {
                 binFile >> weightElement;
-                array[j * numCols + i] = (ElemType)weightElement;
+                array[j * numRows + i] = (ElemType)weightElement;
             }
         }
         Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
-        VerifyDataSize(Value());
     }
 
     binFile.close();
