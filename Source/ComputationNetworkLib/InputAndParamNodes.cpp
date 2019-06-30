@@ -421,7 +421,8 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
     ifstream binFile(initFromBinFilePath, ios::binary | ios::in);
     if (!binFile)
         LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
-    binFile >> numRows >> numCols;
+    binFile.read((char*)&numRows, sizeof(int));
+    binFile.read((char*)&numCols, sizeof(int));
     vector<ElemType> array;
     float weightElement;
     array.resize(numRows * numCols);
@@ -434,7 +435,7 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         {
             for (int j(0); j < numCols; ++j)
             {
-                binFile >> weightElement;
+                binFile.read((char*)&weightElement, sizeof(float));
                 array[i * numCols + j] = (ElemType)weightElement;
             }
         }
@@ -454,7 +455,7 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         {
             for (int j(0); j < numCols; ++j)
             {
-                binFile >> weightElement;
+                binFile.read((char*)&weightElement, sizeof(float));
                 if (j >= startIndex && j <= endIndex)
                     array[(j - startIndex) * numRows + i] = (ElemType)weightElement;
             }
