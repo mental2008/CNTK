@@ -587,13 +587,6 @@ public:
                 LogicError("With AllGather op, minibatch size in each Gpu must be the same.");
             m_minibatchSize = minibatchSize;
             m_batchSize = m_minibatchSize * m_processNum;
-            
-            LearnableParameter<ElemType>* wNode = dynamic_cast<LearnableParameter<ElemType>*>(Input(1).get());
-            if (wNode->m_weightBinPath != L"")
-            {
-                wNode->InitWeightFromBinFile(wNode->m_weightBinPath);
-                wNode->m_weightBinPath = L"";
-            }
         }
         m_temp1->Resize(m_inputDim, m_batchSize);                 // Aggregated X
         if (m_weightNormalize)
@@ -1526,14 +1519,6 @@ public:
     virtual void UpdateFunctionMBSize() override
     {
         m_minibatchSize = InputRef(0).Value().GetNumCols();
-        
-        LearnableParameter<ElemType>* wNode = dynamic_cast<LearnableParameter<ElemType>*>(Input(2).get());
-        if (wNode->m_weightBinPath != L"")
-        {
-            wNode->InitWeightFromBinFile(wNode->m_weightBinPath);
-            wNode->m_weightBinPath = L"";
-        }
-
         m_label->Resize(1, m_minibatchSize);
         m_labelValue->Resize(1, m_minibatchSize);
         m_weightMagnitude->Resize(m_outputDimension, 1); // Matrix(k,1)
