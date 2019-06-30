@@ -112,7 +112,7 @@ AdditiveFullConnectionLayer {inputDimension, outputDimension, weightNormalize=tr
 {
     W = ParameterTensor {_ConcatArrays (outputDimension, inputDimension), learningRateMultiplier=learningRateMultiplier, init=init, initValueScale=initValueScale, weightFile=weightFile}
 
-    apply (labelSequence, outProbVectorSequence) = AdditiveFullConnection(labelSequence, outProbVectorSequence, W, outputDimension=outputDimension, weightNormalize=weightNormalize, bias=bias, annealBias=annealBias, biasBase=biasBase, biasGamma=biasGamma, biasPower=biasPower, biasMin=biasMin, biasMax=biasMax, weightFile="")
+    apply (labelSequence, outProbVectorSequence) = AdditiveFullConnection(labelSequence, outProbVectorSequence, W, outputDimension=outputDimension, weightNormalize=weightNormalize, bias=bias, annealBias=annealBias, biasBase=biasBase, biasGamma=biasGamma, biasPower=biasPower, biasMin=biasMin, biasMax=biasMax)
 }.apply
 
 # ArcMarginProductLayer -- create a arc margin product layer
