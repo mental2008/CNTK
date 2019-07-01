@@ -434,14 +434,14 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
     binFile.read((char*)&numRows, sizeof(int));
     binFile.read((char*)&numCols, sizeof(int));
-    vector<ElemType> array;
-    float weightElement;
-    array.resize(numRows * numCols);
 
     if (!this->m_distribute)
     {
         if (Value().GetNumRows() != numCols && Value().GetNumCols() != numRows)
             LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numCols, numRows);
+        vector<ElemType> array;
+        float weightElement;
+        array.resize(numRows * numCols);
         for (int i(0); i < numRows; ++i)
         {
             for (int j(0); j < numCols; ++j)
@@ -462,6 +462,9 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         int endIndex = (rank + 1) * (numCols / processNum) - 1;
         if (Value().GetNumRows() != numRows && Value().GetNumCols() != numCols / processNum)
             LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols / processNum);
+        vector<ElemType> array;
+        float weightElement;
+        array.resize(numRows * numCols);
         for (int i(0); i < numRows; ++i)
         {
             for (int j(0); j < numCols; ++j)

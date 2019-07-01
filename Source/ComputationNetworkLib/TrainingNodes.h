@@ -22,6 +22,11 @@
 #include <memory>
 #include <random>
 
+#define __LOAD_WEIGHT__
+#ifdef __LOAD_WEIGHT__
+#include <fstream>
+#endif
+
 namespace Microsoft { namespace MSR { namespace CNTK {
 
 // Names of random variable types
@@ -566,6 +571,9 @@ public:
 #ifdef CPUONLY
         LogicError("CPUONLY is not supported in DistributedAdditiveFullConnectionNode.");
 #endif
+#ifdef __LOAD_WEIGHT__
+        m_weightLoaded = false;
+#endif
     }
 
     ~DistributedAdditiveFullConnectionNode()
@@ -617,6 +625,28 @@ public:
     {
         auto& W = InputRef(1).Value();
         auto& X = InputRef(2).Value();
+
+#ifdef __LOAD_WEIGHT__
+        if (!m_weightLoaded)
+        {
+            ofstream weightFile(("weight-dist_" + to_string(m_rank) + "_" + to_string(m_processNum) + ".bin").c_str(), ios::binary | ios::out);
+            int rows = W.GetNumRows();
+            int cols = W.GetNumCols();
+            weightFile.write((char*)&rows, sizeof(int));
+            weightFile.write((char*)&cols, sizeof(int));
+            for (int i(0); i < rows; ++i)
+            {
+                for (int j(0); j < cols; ++j)
+                {
+                    float temp = (float)W.GetValue(i, j);
+                    weightFile.write((char*)&temp, sizeof(float));
+                }
+            }
+            weightFile.close();
+            m_weightLoaded = true;
+        }
+#endif
+
         if (m_weightNormalize)
         {
             W.VectorNorm2(*m_WNorm, true);
@@ -722,6 +752,10 @@ public:
         fstream >> m_bias;
         fstream >> m_scale;
     }
+
+#ifdef __LOAD_WEIGHT__
+    bool m_weightLoaded;
+#endif
 
     size_t m_rank;
     size_t m_processNum;
@@ -1514,6 +1548,9 @@ public:
         : Base(deviceId, name), m_outputDimension(outputDimension), m_weightNormalize(weightNormalize), m_bias(bias), m_annealBias(annealBias), m_biasBase(biasBase), m_biasGamma(biasGamma), m_biasPower(biasPower), m_biasMin(biasMin), m_biasMax(biasMax)
     {
         m_iter = 0;
+#ifdef __LOAD_WEIGHT__
+        m_weightLoaded = false;
+#endif
     }
 
     virtual void UpdateFunctionMBSize() override
@@ -1548,6 +1585,32 @@ public:
         InputRef(0).MaskedValueFor(fr).VectorMax(*m_label, *m_labelValue, true /*isColWise*/);
         auto X = InputRef(1).ValueFor(fr);
         auto& weight = InputRef(2).Value();
+
+#ifdef __LOAD_WEIGHT__
+        if (!m_weightLoaded)
+        {
+            ofstream weightFile("weight.bin", ios::binary | ios::out);
+            ofstream _weightFile("weight.txt", ios::out);
+            int rows = (int)weight.GetNumRows();
+            int cols = (int)weight.GetNumCols();
+            weightFile.write((char*)&cols, sizeof(int));
+            weightFile.write((char*)&rows, sizeof(int));
+            _weightFile << cols << "\t" << rows << endl;
+            for (int i(0); i < cols; ++i)
+            {
+                for (int j(0); j < rows; ++j)
+                {
+                    float temp = (float)weight.GetValue(j, i);
+                    weightFile.write((char*)&temp, sizeof(float));
+                    _weightFile << (float)weight.GetValue(j, i) << " ";
+                }
+                _weightFile << "\n";
+            }
+            weightFile.close();
+            _weightFile.close();
+            m_weightLoaded = true;
+        }
+#endif
 
         if (m_weightNormalize)
         {
@@ -1661,6 +1724,9 @@ public:
         fstream >> m_iter;
     }
 
+#ifdef __LOAD_WEIGHT__
+    bool m_weightLoaded;
+#endif
 
     size_t m_outputDimension; // k
     size_t m_minibatchSize;   // m
