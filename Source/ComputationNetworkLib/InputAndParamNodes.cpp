@@ -422,7 +422,14 @@ template <class ElemType>
 void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& initFromBinFilePath)
 {
     int numRows, numCols;
-    ifstream binFile(initFromBinFilePath, ios::binary | ios::in);
+    auto wstr2str = [](wstring wstr) {
+        string str = "";
+        size_t len = wstr.length();
+        for (size_t i(0); i < len; ++i)
+            str += (char)wstr[i];
+        return str;
+    };
+    ifstream binFile(wstr2str(initFromBinFilePath), ios::binary | ios::in);
     if (!binFile)
         LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
     binFile.read((char*)&numRows, sizeof(int));
