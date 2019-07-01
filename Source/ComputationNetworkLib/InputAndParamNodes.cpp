@@ -172,8 +172,12 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
         fprintf(stderr, "%ls: Initializating Parameter[%s] as %ls later when dimensions are fully known.\n", NodeDescription().c_str(), string(GetSampleLayout()).c_str(), m_initString.c_str());
 
 
-    if (configp->Exists(L"weightFile") && (wstring)configp->Get(L"weightFile") != L"")
-        InitWeightFromBinFile((wstring)configp->Get(L"weightFile"));
+    if (configp->Exists(L"weightFile"))
+    {
+	wstring weightFilePath = configp->Get(L"weightFile");
+	if (weightFilePath != L"")
+		InitWeightFromBinFile(weightFilePath);
+    }
 }
 
 // helper to cast a shape possibly given as a single size_t to a TensorShape object
