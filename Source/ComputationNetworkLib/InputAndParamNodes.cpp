@@ -437,7 +437,7 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
 
     if (!this->m_distribute)
     {
-        if (Value().GetNumRows() != numCols && Value().GetNumCols() != numRows)
+        if (Value().GetNumRows() != numCols || Value().GetNumCols() != numRows)
             LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numCols, numRows);
         vector<ElemType> array;
         float weightElement;
@@ -460,7 +460,7 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
             LogicError("LearnableParameter: numCols mod processNum != 0.");
         int startIndex = rank * (numCols / processNum);
         int endIndex = (rank + 1) * (numCols / processNum) - 1;
-        if (Value().GetNumRows() != numRows && Value().GetNumCols() != numCols / processNum)
+        if (Value().GetNumRows() != numRows || Value().GetNumCols() != numCols / processNum)
             LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols / processNum);
         vector<ElemType> array;
         float weightElement;
