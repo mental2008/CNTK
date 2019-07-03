@@ -22,7 +22,7 @@
 #include <memory>
 #include <random>
 
-#define __LOAD_WEIGHT__
+//#define __LOAD_WEIGHT__
 #ifdef __LOAD_WEIGHT__
 #include <fstream>
 #endif
