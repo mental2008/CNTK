@@ -1558,7 +1558,8 @@ public:
         m_minibatchSize = InputRef(0).Value().GetNumCols();
         m_label->Resize(1, m_minibatchSize);
         m_labelValue->Resize(1, m_minibatchSize);
-        m_weightMagnitude->Resize(m_outputDimension, 1); // Matrix(k,1)
+        if (m_weightNormalize)
+            m_weightMagnitude->Resize(m_outputDimension, 1); // Matrix(k,1)
     }
 
     virtual void BackpropToNonLooping(size_t inputIndex) override
