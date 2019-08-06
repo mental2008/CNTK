@@ -2290,7 +2290,7 @@ public:
     void Load(File& fstream, size_t modelVersion) override
     {
         Base::Load(fstream, modelVersion);
-//        fstream >> m_smoothRate;
+        fstream >> m_smoothRate;
     }
 
 protected:
