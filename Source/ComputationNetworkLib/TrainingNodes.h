@@ -22,7 +22,7 @@
 #include <memory>
 #include <random>
 
-//#define __LOAD_WEIGHT__
+#define __LOAD_WEIGHT__
 #ifdef __LOAD_WEIGHT__
 #include <fstream>
 #endif
@@ -1594,16 +1594,16 @@ public:
             ofstream _weightFile("weight.txt", ios::out);
             int rows = (int)weight.GetNumRows();
             int cols = (int)weight.GetNumCols();
-            weightFile.write((char*)&cols, sizeof(int));
             weightFile.write((char*)&rows, sizeof(int));
-            _weightFile << cols << "\t" << rows << endl;
-            for (int i(0); i < cols; ++i)
+            weightFile.write((char*)&cols, sizeof(int));
+            _weightFile << rows << "\t" << cols << endl;
+            for (int i(0); i < rows; ++i)
             {
-                for (int j(0); j < rows; ++j)
+                for (int j(0); j < cols; ++j)
                 {
-                    float temp = (float)weight.GetValue(j, i);
+                    float temp = (float)weight.GetValue(i, j);
                     weightFile.write((char*)&temp, sizeof(float));
-                    _weightFile << (float)weight.GetValue(j, i) << " ";
+                    _weightFile << (float)weight.GetValue(i, j) << " ";
                 }
                 _weightFile << "\n";
             }
