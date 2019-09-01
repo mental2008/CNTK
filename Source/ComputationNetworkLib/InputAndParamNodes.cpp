@@ -11,6 +11,7 @@
 
 #include <string>
 #include <fstream>
+#include <iostream>
 using namespace std;
 
 //
@@ -433,6 +434,7 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
     binFile.read((char*)&numRows, sizeof(int));
     binFile.read((char*)&numCols, sizeof(int));
+    cout << "Load the weight file: " << wstr2str(initFromBinFilePath) << ", numRows = " << numRows << ", numCols = " << numCols << "\n";
 
     if (!this->m_distribute)
     {
