@@ -30,7 +30,7 @@
 
 # LinearLayer -- create a fully-connected linear projection layer
 # Note: outDim may describe a tensor as well.
-LinearLayer {outDim, bias = true, init='glorotUniform', initValueScale=1, inputRank=None, mapRank=None, initBias=0, disableRegularization=false} =
+LinearLayer {outDim, bias = true, init='glorotUniform', initValueScale=1, inputRank=None, mapRank=None, initBias=0, disableRegularization=false, learningRateMultiplier=1.0, weightFile=''} =
 {
     # inputRank given: number of zeroes to add to W (mapRank must not be given)
     # mapRank   given: expand W to leave exactly mapRank axes (inputRank must not be given)
@@ -39,7 +39,7 @@ LinearLayer {outDim, bias = true, init='glorotUniform', initValueScale=1, inputR
         if       BS.Constants.IsNone (inputRank) then Inferred  # not given: one Inferred, which will get expanded
         else if !BS.Constants.IsNone (mapRank)   then Fail ("'inputRank' and 'mapRank' cannot be specified at the same time.")
         else Repeat (inputRank, Inferred)
-    W = ParameterTensor {_ConcatArrays (outDim, inputShape), init=init, initValueScale=initValueScale, disableRegularization=disableRegularization}
+    W = ParameterTensor {_ConcatArrays (outDim, inputShape), init=init, initValueScale=initValueScale, disableRegularization=disableRegularization, learningRateMultiplier=learningRateMultiplier, weightFile=weightFile}
     b = ParameterTensor {outDim, initValue=initBias, disableRegularization=disableRegularization}
     outputRank = Length (_AsArray (outDim)) # support outputs with tensor layouts
     inferInputRankToMap =

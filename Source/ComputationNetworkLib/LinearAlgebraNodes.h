@@ -23,6 +23,11 @@
 #include "Quantizers.h"
 #include "InputAndParamNodes.h"
 
+// #define __EXTRACT_WEIGHT__
+#ifdef __EXTRACT_WEIGHT__
+#include <fstream>
+#endif
+
 namespace Microsoft { namespace MSR { namespace CNTK {
 
 // -----------------------------------------------------------------------
@@ -643,6 +648,32 @@ public:
         // If argument A is minibatch data, then this must be performed frame-by-frame, sequence-by-sequence, one GEMM call each.
         // This will be inefficient. We hope this will be the baseline of a future, more efficient TensorView-based implementation.
         auto inputMBLayout = InputRef(0).GetMBLayout();
+#ifdef __EXTRACT_WEIGHT__
+        // InputRef(0) -- Weight
+        // InputRef(1) -- Input
+        int rows = (int)InputRef(0).Value().GetNumRows();
+        int cols = (int)InputRef(0).Value().GetNumCols();
+        if (rows == 100 && cols == 512)
+        {
+            ofstream weightFile("weight_fc.bin", ios::binary | ios::out);
+            ofstream _weightFile("weight_fc.txt", ios::out);
+            weightFile.write((char*)&rows, sizeof(int));
+            weightFile.write((char*)&cols, sizeof(int));
+            _weightFile << rows << " " << cols << "\n";
+            for (int i(0); i < rows; ++i)
+            {
+                for (int j(0); j < cols; ++j)
+                {
+                    float element = (float)InputRef(0).Value().GetValue(i, j);
+                    weightFile.write((char*)&element, sizeof(float));
+                    _weightFile << (float)InputRef(0).Value().GetValue(i, j) << " ";
+                }
+                _weightFile << "\n";
+            }
+            weightFile.close();
+            _weightFile.close();
+        }
+#endif
         if (!fr.IsOneColumnWrt(inputMBLayout))
         {
             if (ReduceSequenceAxis())
