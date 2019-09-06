@@ -23,7 +23,7 @@
 #include "Quantizers.h"
 #include "InputAndParamNodes.h"
 
-// #define __EXTRACT_WEIGHT__
+#define __EXTRACT_WEIGHT__
 #ifdef __EXTRACT_WEIGHT__
 #include <fstream>
 #endif
