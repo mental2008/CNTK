@@ -176,7 +176,10 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
     {
         wstring weightFilePath = configp->Get(L"weightFile");
         if (weightFilePath != L"")
-            InitWeightFromBinFile(weightFilePath);
+        {
+            // InitWeightFromBinFile(weightFilePath);
+            m_weightFile = weightFilePath;
+        }
     }
 }
 
@@ -434,12 +437,13 @@ void LearnableParameter<ElemType>::InitWeightFromBinFile(const std::wstring& ini
         LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
     binFile.read((char*)&numRows, sizeof(int));
     binFile.read((char*)&numCols, sizeof(int));
-    cout << "Load the weight file: " << wstr2str(initFromBinFilePath) << ", numRows = " << numRows << ", numCols = " << numCols << ", Current weight: (" << (int)Value().GetNumRows() << ", " << (int)Value().GetNumCols() << ").\n";
+    LOGPRINTF(stderr, "Load the weight file: %s, numRows = %d, numCols = %d.\n", wstr2str(initFromBinFilePath).c_str(), numRows, numCols);
+    // cout << "Load the weight file: " << wstr2str(initFromBinFilePath) << ", numRows = " << numRows << ", numCols = " << numCols << ", Current weight: (" << (int)Value().GetNumRows() << ", " << (int)Value().GetNumCols() << ").\n";
 
     if (!this->m_distribute)
     {
-        // if (Value().GetNumRows() != numRows || Value().GetNumCols() != numCols)
-        //    LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols);
+        if (Value().GetNumRows() != numRows || Value().GetNumCols() != numCols)
+            LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols);
         vector<ElemType> array;
         array.resize(numRows * numCols);
         for (int i(0); i < numRows; ++i)
@@ -681,6 +685,11 @@ void LearnableParameter<ElemType>::LazyInitParameters()
     // if not all dimensions are known yet, we cannot proceed: keep it pending
     if (GetSampleLayout().GetNumElements() == 0)
         return;
+
+    // int rows = (int)Value().GetNumRows(), cols = (int)Value().GetNumCols();
+    // if (rows == 100 && cols == 512)
+    //    cout << "Current weight: (" << (int)Value().GetNumRows() << ", " << (int)Value().GetNumCols() << ").\n";
+
     // OK, proceed
     if (m_initString == L"fromValue")
     {
@@ -760,6 +769,8 @@ void LearnableParameter<ElemType>::InferInputDimsFrom(const TensorShape& otherSh
     }
 #endif
     LazyInitParameters();
+    if (m_weightFile != L"")
+        InitWeightFromBinFile(m_weightFile);
 }
 
 template <class ElemType>

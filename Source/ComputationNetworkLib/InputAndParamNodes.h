@@ -53,6 +53,7 @@ public:
         m_initValue = 0;
         m_regMultiplier = 1.0f; // enable reg in update by default
         m_gatheredParams = NULL;
+        m_weightFile = L"";
     }
     LearnableParameter(DEVICEID_TYPE deviceId, const wstring& name, const TensorShape& shape, const ScriptableObjects::IConfigRecordPtr configp = NULL) :
         LearnableParameter(deviceId, name)
@@ -205,6 +206,8 @@ private:
     int m_initOutputRank;
     bool m_initOnCPUOnly;
     ElemType m_initValue;
+
+    std::wstring m_weightFile;
 
     // flags related to gradient update
     float m_regMultiplier; // The multiplier to adjust the L1Reg and L2Reg for Learnable node
