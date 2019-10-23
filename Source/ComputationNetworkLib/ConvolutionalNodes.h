@@ -10,7 +10,13 @@
 #include "ComputationNode.h"
 #include "ConvolutionEngine.h"
 
+#include <vector>
+
 namespace Microsoft { namespace MSR { namespace CNTK {
+
+extern const bool printInfo;
+extern bool isFirstForward;
+extern size_t nodeCount;
 
 // -----------------------------------------------------------------------
 // ConvolutionNodeBase
@@ -523,6 +529,52 @@ public:
         Matrix<ElemType> sliceOutputValue = ValueFor(fr);
         const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
         Matrix<ElemType> sliceInput1Value = InputRef(1).ValueFor(fr);
+
+        // print the input of convolutional layer
+        if (printInfo)
+        {
+            // input0.Print(L"ConvWeight"); // Print out the weight of Convolutional Node
+
+            // If this is first forward, the weight of Convolutional Nodes will be initialized from weight file
+            if (isFirstForward)
+            {
+                std::vector<ElemType> arr;
+                arr.resize(input0.GetNumRows() * input0.GetNumCols());
+                std::wostringstream oss;
+                oss << (int)input0.GetNumRows() << L"_" << (int)input0.GetNumCols() << L".txt";
+                wstring weightPath = L"ConvWeight\\ConvWeight_" + oss.str();
+                ifstream weightFile(weightPath.c_str(), ios::in);
+                if (!weightFile)
+                    RuntimeError("Cannot open file %s.", weightPath.c_str());
+                int numRows, numCols;
+                weightFile >> numRows >> numCols;
+                assert(numRows == (int)input0.GetNumRows());
+                assert(numCols == (int)input0.GetNumCols());
+                for (int i = 0; i < numCols; ++i)
+                {
+                    for (int j = 0; j < numRows; ++j)
+                    {
+                        float weightElement;
+                        weightFile >> weightElement;
+                        arr[i * numRows + j] = (ElemType)weightElement;
+                    }
+                }
+                InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
+            }
+
+            if (isFirstForward)
+            {
+                nodeCount += 1;
+                sliceInput1Value.Print(L"Forward", L"convInput", nodeCount);
+            }
+            // input0.Print(L"ConvWeight");
+
+            // cout << input0.GetNumRows() << " " << input0.GetNumCols() << "\n";
+            // input0.Print(L"convWeight_cntk.txt");
+            // cout << sliceInput1Value.GetNumRows() << " " << sliceInput1Value.GetNumCols() << "\n";
+            // sliceInput1Value.Print(L"convInput_cntk.txt");
+        }
+
         if (!m_transpose)
             m_convEng->Forward(sliceInput1Value, input0, sliceOutputValue, *m_tempMatrixForward);
         else
@@ -532,6 +584,11 @@ public:
             sliceOutputValue.SetValue(0);
             m_convEng->BackwardData(sliceInput1Value, input0, sliceOutputValue, /*accumulateGradient =*/ true, *m_tempMatrixForward);
         }
+
+        // print the output of convolutional layer
+        if (printInfo && isFirstForward)
+            sliceOutputValue.Print(L"Forward", L"convOutput", nodeCount);
+
     }
 
     void BackpropTo(const size_t inputIndex, const FrameRange& fr) override
@@ -552,6 +609,12 @@ public:
                 m_convEng->BackwardKernel(sliceOutputGrad, sliceInput1Value, grad, !Input(inputIndex)->IsGradientInitializedBy(this), fr.IsAllFrames(), *m_tempMatrixBackward);
             else
                 m_convEng->BackwardKernel(sliceInput1Value, sliceOutputGrad, grad, !Input(inputIndex)->IsGradientInitializedBy(this), fr.IsAllFrames(), *m_tempMatrixBackward);
+
+            if (printInfo)
+            {
+                nodeCount -= 1;
+                grad.Print(L"Backward", L"convGrad", nodeCount);
+            }
         }
         else if (inputIndex == 1) // derivative with respect to the input feature
         {

@@ -45,6 +45,9 @@ const double Pi = acos(-1.0);
 #include <map>
 #include <set>
 
+#include <iostream>
+#include <fstream>
+
 namespace Microsoft
 {
 namespace MSR
@@ -53,6 +56,10 @@ namespace CNTK
 {
 
 using namespace std;
+
+extern const bool printInfo;
+extern bool isFirstForward;
+extern size_t nodeCount;
 
 // =======================================================================
 // class SGD
@@ -307,7 +314,12 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     {
         auto& nodes = (pass == 0) ? featureNodes : labelNodes;
         for (const auto& node : nodes)
+        {
             inputMatrices->AddInput(node->NodeName(), node->ValuePtr(), node->GetMBLayout(), node->GetSampleLayout());
+#ifdef __DEBUG__
+            wcout << "Add Input: " << node->NodeName() << "\n";
+#endif
+        }
     }
 
     // get hmm file for sequence training
@@ -548,6 +560,9 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     {
         tensorBoardWriter = make_shared<::CNTK::Internal::TensorBoardFileWriter>(m_tensorBoardLogDir, net);
     }
+
+    // initialize
+    isFirstForward = true;
 
     // --- MAIN EPOCH LOOP
     for (int i = startEpoch; i < (int) m_maxEpochs; i++) // TODO: why is this an int, and not a size_t?
@@ -1261,6 +1276,13 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
         auto profGetMinibatch = ProfilerTimeBegin();
         bool wasDataRead = DataReaderHelpers::GetMinibatchIntoNetwork<ElemType>(*trainSetDataReader, net, criterionNodes[0],
                                                                                 useDistributedMBReading, useParallelTrain, *inputMatrices, actualMBSize, m_mpi);
+        
+#ifdef __DEBUG__
+        // wstring labelsStr = L"labels";
+        // auto labelsInput = inputMatrices->GetInput(labelsStr).matrix;
+        // cout << labelsInput->GetValue(0, 0) << "\n";
+        // auto labels = labelsInput.GetMatrix<int>(labelsStr.c_str());
+#endif
 
         if (maxNumSamplesExceeded) // Dropping data.
             wasDataRead = false;
@@ -1296,6 +1318,40 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
         // TODO: original code did not call this for actualMBSize == 0
         ComputationNetwork::BumpEvalTimeStamp(featureNodes);
         ComputationNetwork::BumpEvalTimeStamp(labelNodes);
+
+        // print the feature and label of this batch
+        if (printInfo)
+        {
+            // Matrix<float>& features = dynamic_pointer_cast<ComputationNode<float>>(featureNodes[0])->Value();
+            // features.Print(L"input_cntk.txt");
+            /*
+            cout << features.GetNumRows() << " " << features.GetNumCols() << "\n";
+            ofstream input("input_cntk.txt", ios::out);
+            for (size_t i = 0; i < features.GetNumCols(); ++i)
+            {
+                for (size_t j = 0; j < features.GetNumRows(); ++j)
+                {
+                    input << features.GetValue(j, i) << " ";
+                }
+                input << "\n";
+            }
+            input.close();
+            */
+            // Matrix<float>& labels = dynamic_pointer_cast<ComputationNode<float>>(labelNodes[0])->Value();
+            // labels.Print(L"label_cntk.txt");
+            /*
+            cout << labels.GetNumRows() << " " << labels.GetNumCols() << "\n";
+            for (size_t i = 0; i < labels.GetNumCols(); ++i)
+            {
+                cout << "Sample " << i + 1 << "\n";
+                for (size_t j = 0; j < labels.GetNumRows(); ++j)
+                {
+                    cout << labels.GetValue(j, i) << " ";
+                }
+                cout << "\n";
+            }
+            */
+        }
 
         if (actualMBSize > 0)
         {
@@ -1393,6 +1449,11 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
                 startTime = clock();
 #endif
 
+                // reset the counter of conv and bn in the first forward
+                if (printInfo && isFirstForward)
+                {
+                    nodeCount = 0;
+                }
 
                 // compute eval node first since when gradient is computed the forward function values
                 // may be changed and need to be recomputed when gradient and function value share the same matrix
@@ -1417,7 +1478,10 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
 
                 if (learnRatePerSample > 0.01 * m_minLearnRate) // only compute gradient when learning rate is large enough
                     net->Backprop(criterionNodes[0]);
-
+                
+                // modify the sign of first forward
+                if (isFirstForward)
+                    isFirstForward = false;
 
 #ifdef __PROFILE__
                 endTime = clock();

@@ -30,6 +30,10 @@
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
+extern const bool printInfo;
+extern bool isFirstForward;
+extern size_t nodeCount;
+
 // -----------------------------------------------------------------------
 // PlusNode (summand1, summand2)
 // -----------------------------------------------------------------------
@@ -648,6 +652,45 @@ public:
         // If argument A is minibatch data, then this must be performed frame-by-frame, sequence-by-sequence, one GEMM call each.
         // This will be inefficient. We hope this will be the baseline of a future, more efficient TensorView-based implementation.
         auto inputMBLayout = InputRef(0).GetMBLayout();
+
+        if (printInfo)
+        {
+
+            if (isFirstForward)
+            {
+                const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
+                std::vector<ElemType> arr;
+                arr.resize(input0.GetNumRows() * input0.GetNumCols());
+                std::wostringstream oss;
+                oss << (int)input0.GetNumRows() << L"_" << (int)input0.GetNumCols() << L".txt";
+                wstring weightPath = L"fcWeight\\fcWeight_" + oss.str();
+                ifstream weightFile(weightPath.c_str(), ios::in);
+                if (!weightFile)
+                    RuntimeError("Cannot open file %s.", weightPath.c_str());
+                int numRows, numCols;
+                weightFile >> numRows >> numCols;
+                assert(numRows == (int)input0.GetNumRows());
+                assert(numCols == (int)input0.GetNumCols());
+                for (int i = 0; i < numCols; ++i)
+                {
+                    for (int j = 0; j < numRows; ++j)
+                    {
+                        float weightElement;
+                        weightFile >> weightElement;
+                        arr[i * numRows + j] = (ElemType)weightElement;
+                    }
+                }
+                InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
+            }
+
+            if (isFirstForward)
+            {
+                nodeCount += 1;
+                InputRef(1).Value().Print(L"Forward", L"fcInput", nodeCount);
+            }
+
+        }
+
 #ifdef __EXTRACT_WEIGHT__
         // InputRef(0) -- Weight
         // InputRef(1) -- Input
@@ -745,6 +788,11 @@ public:
         auto input1 = OneSampleTensorFor(1,  /*gradient=*/false, fr.AllowBroadcast());
         auto output = OneSampleTensorFor(-1, /*gradient=*/false, fr);
         output.AssignMatrixProductOf(false/*transC*/, input0, m_transpose/*transA*/, input1, false/*transB*/, 1.0f, this->m_pQuantizedMultiplier);
+
+        if (printInfo && isFirstForward)
+        {
+            output.GetSOB().Print(L"Forward", L"fcOutput", nodeCount);
+        }
     }
 
     virtual void /*ComputationNode::*/ BackpropTo(const size_t inputIndex, const FrameRange& fr) override
@@ -893,6 +941,12 @@ public:
                 input0Gradient.AssignMatrixProductOf(m_transpose/*transC*/, outputGradient, false/*transA*/, input1, true/*transB*/);
             else
                 input0Gradient.AddMatrixProductOf(m_transpose/*transC*/, outputGradient, false/*transA*/, input1, true/*transB*/);
+
+            if (printInfo && isFirstForward)
+            {
+                nodeCount -= 1;
+                input0Gradient.GetSOB().Print(L"Backward", L"fcGrad", nodeCount);
+            }
         }
         else if (inputIndex == 1) // right derivative
         {

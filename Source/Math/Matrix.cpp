@@ -4558,6 +4558,32 @@ void Matrix<ElemType>::Print(const char* matrixName /*=nullptr*/) const
     Print(matrixName, 0, GetNumRows() - 1, 0, GetNumCols() - 1);
 }
 
+template <class ElemType>
+void Matrix<ElemType>::Print(std::wstring saveDir, std::wstring saveType, size_t count) const
+{
+    std::wostringstream oss;
+    oss << saveDir << L"\\" << count << L"-" << saveType << "_" << (int)GetNumRows() << L"_" << (int)GetNumCols() << L".txt";
+    std::wstring savePath = oss.str();
+     
+    ofstream file(savePath.c_str(), ios::out);
+    if (!file)
+        RuntimeError("Cannot create file %s.", savePath.c_str());
+
+    // file << GetNumRows() << " " << GetNumCols() << "\n";
+    for (size_t i = 0; i < GetNumCols(); ++i)
+    {
+        for (size_t j = 0; j < GetNumRows(); ++j)
+        {
+            file << (float)GetValue(j, i);
+            if (j != GetNumRows() - 1)
+                file << " ";
+        }
+        if (i != GetNumCols() - 1)
+            file << "\n";
+    }
+    file.close();
+}
+
 //helpfer function used for convolution neural network
 template <class ElemType>
 Matrix<ElemType>& Matrix<ElemType>::AssignPackedConvolutionInput(const Matrix<ElemType>& inputSubBatch,

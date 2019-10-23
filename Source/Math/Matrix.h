@@ -526,6 +526,7 @@ public:
 
     void Print(const char* matrixName, ptrdiff_t rowFirst, ptrdiff_t rowLast, ptrdiff_t colFirst, ptrdiff_t colLast) const;
     void Print(const char* matrixName = nullptr) const; // print whole matrix. can be expensive
+    void Print(std::wstring saveDir, std::wstring saveType, size_t count) const;
 
     Matrix<ElemType>& AssignPackedConvolutionInput(const Matrix<ElemType>& inputSubBatch,
                                                    const size_t inputWidth, const size_t inputHeight, const size_t inputChannels,
