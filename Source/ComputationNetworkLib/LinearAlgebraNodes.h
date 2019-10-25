@@ -33,6 +33,8 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 extern const bool printInfo;
 extern bool isFirstForward;
 extern size_t nodeCount;
+extern size_t iterCount;
+extern const size_t iterPrint;
 
 // -----------------------------------------------------------------------
 // PlusNode (summand1, summand2)
@@ -683,12 +685,11 @@ public:
                 InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
             }
 
-            if (isFirstForward)
+            if (iterCount == iterPrint)
             {
                 nodeCount += 1;
                 InputRef(1).Value().Print(L"Forward", L"fcInput", nodeCount);
             }
-
         }
 
 #ifdef __EXTRACT_WEIGHT__
@@ -789,7 +790,7 @@ public:
         auto output = OneSampleTensorFor(-1, /*gradient=*/false, fr);
         output.AssignMatrixProductOf(false/*transC*/, input0, m_transpose/*transA*/, input1, false/*transB*/, 1.0f, this->m_pQuantizedMultiplier);
 
-        if (printInfo && isFirstForward)
+        if (printInfo && iterCount == iterPrint)
         {
             output.GetSOB().Print(L"Forward", L"fcOutput", nodeCount);
         }
@@ -942,7 +943,7 @@ public:
             else
                 input0Gradient.AddMatrixProductOf(m_transpose/*transC*/, outputGradient, false/*transA*/, input1, true/*transB*/);
 
-            if (printInfo && isFirstForward)
+            if (printInfo && iterCount == iterPrint)
             {
                 nodeCount -= 1;
                 input0Gradient.GetSOB().Print(L"Backward", L"fcGrad", nodeCount);

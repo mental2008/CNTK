@@ -17,6 +17,8 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 extern const bool printInfo;
 extern bool isFirstForward;
 extern size_t nodeCount;
+extern size_t iterCount;
+extern const size_t iterPrint;
 
 // -----------------------------------------------------------------------
 // ConvolutionNodeBase
@@ -562,11 +564,14 @@ public:
                 InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
             }
 
-            if (isFirstForward)
+            if (iterCount == iterPrint)
             {
                 nodeCount += 1;
                 sliceInput1Value.Print(L"Forward", L"convInput", nodeCount);
+
+                input0.Print(L"Weight", L"convWeight", nodeCount);
             }
+
             // input0.Print(L"ConvWeight");
 
             // cout << input0.GetNumRows() << " " << input0.GetNumCols() << "\n";
@@ -586,7 +591,7 @@ public:
         }
 
         // print the output of convolutional layer
-        if (printInfo && isFirstForward)
+        if (printInfo && iterCount == iterPrint)
             sliceOutputValue.Print(L"Forward", L"convOutput", nodeCount);
 
     }
@@ -610,7 +615,7 @@ public:
             else
                 m_convEng->BackwardKernel(sliceInput1Value, sliceOutputGrad, grad, !Input(inputIndex)->IsGradientInitializedBy(this), fr.IsAllFrames(), *m_tempMatrixBackward);
 
-            if (printInfo)
+            if (printInfo && iterCount == iterPrint)
             {
                 nodeCount -= 1;
                 grad.Print(L"Backward", L"convGrad", nodeCount);

@@ -60,6 +60,8 @@ using namespace std;
 extern const bool printInfo;
 extern bool isFirstForward;
 extern size_t nodeCount;
+extern size_t iterCount;
+extern const size_t iterPrint;
 
 // =======================================================================
 // class SGD
@@ -560,9 +562,12 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     {
         tensorBoardWriter = make_shared<::CNTK::Internal::TensorBoardFileWriter>(m_tensorBoardLogDir, net);
     }
-
-    // initialize
-    isFirstForward = true;
+    
+    if (printInfo)
+    {
+        // initialize
+        isFirstForward = true;
+    }
 
     // --- MAIN EPOCH LOOP
     for (int i = startEpoch; i < (int) m_maxEpochs; i++) // TODO: why is this an int, and not a size_t?
@@ -1263,6 +1268,9 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
     auto forwardPropRoots = evaluationNodes;
     forwardPropRoots.push_back(criterionNodes[0]);
 
+    if (printInfo)
+        iterCount = 0;
+
     bool noMoreSamplesToProcess = false;
     bool isFirstMinibatch = true;
     for (;;)
@@ -1276,13 +1284,6 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
         auto profGetMinibatch = ProfilerTimeBegin();
         bool wasDataRead = DataReaderHelpers::GetMinibatchIntoNetwork<ElemType>(*trainSetDataReader, net, criterionNodes[0],
                                                                                 useDistributedMBReading, useParallelTrain, *inputMatrices, actualMBSize, m_mpi);
-        
-#ifdef __DEBUG__
-        // wstring labelsStr = L"labels";
-        // auto labelsInput = inputMatrices->GetInput(labelsStr).matrix;
-        // cout << labelsInput->GetValue(0, 0) << "\n";
-        // auto labels = labelsInput.GetMatrix<int>(labelsStr.c_str());
-#endif
 
         if (maxNumSamplesExceeded) // Dropping data.
             wasDataRead = false;
@@ -1318,6 +1319,9 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
         // TODO: original code did not call this for actualMBSize == 0
         ComputationNetwork::BumpEvalTimeStamp(featureNodes);
         ComputationNetwork::BumpEvalTimeStamp(labelNodes);
+
+        if (printInfo)
+            iterCount += 1;
 
         // print the feature and label of this batch
         if (printInfo)
@@ -1449,8 +1453,8 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
                 startTime = clock();
 #endif
 
-                // reset the counter of conv and bn in the first forward
-                if (printInfo && isFirstForward)
+                // reset the counter of conv and bn in the forward
+                if (printInfo && iterCount == iterPrint)
                 {
                     nodeCount = 0;
                 }
@@ -2634,6 +2638,12 @@ void SGD<ElemType>::UpdateWeights(Matrix<ElemType>& functionValues, Matrix<ElemT
 
     // clipping gradients to prevent outliers
     ClipGradient(gradientValues, actualMBSize);
+
+    if (printInfo && iterCount == iterPrint)
+    {
+        nodeCount += 1;
+        gradientValues.Print(L"GradAfterClipping", L"Grad", nodeCount);
+    }
 
     GradientsUpdateType adpType = GradUpdateType();
     double noiseStd = GradientUpdateNoiseStd();

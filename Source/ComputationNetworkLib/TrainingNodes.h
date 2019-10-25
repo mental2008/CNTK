@@ -28,6 +28,8 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 extern const bool printInfo;
 extern bool isFirstForward;
 extern size_t nodeCount;
+extern size_t iterCount;
+extern const size_t iterPrint;
 
 // Names of random variable types
 static const wstring RandomDistributionTypeUniform   = L"uniform";
@@ -2193,7 +2195,7 @@ public:
     {
         FrameRange fr(InputRef(0).GetMBLayout());
 
-        if (printInfo && isFirstForward)
+        if (printInfo && iterCount == iterPrint)
         {
             nodeCount += 1;
             InputRef(1).Value().Print(L"Forward", L"ceInput", nodeCount);
@@ -2220,7 +2222,7 @@ public:
 #if DUMPOUTPUT
         Value().Print("CrossEntropyWithSoftmaxNode");
 #endif
-        if (printInfo && isFirstForward)
+        if (printInfo && iterCount == iterPrint)
             Value().Print(L"Forward", L"ceOutput", nodeCount);
 
     }
@@ -5051,7 +5053,7 @@ public:
         m_gradientValid = false;
 
         // print the input and output of Batch Normalization Layers
-        if (printInfo && isFirstForward)
+        if (printInfo && iterCount == iterPrint)
         {
             nodeCount += 1;
             sliceInputValue.Print(L"Forward", L"bnInput", nodeCount);
@@ -5156,7 +5158,7 @@ public:
             else
                 this->template TypedInput<StatType>(SCALE)->Gradient() += *m_dScale;
 
-            if (printInfo && isFirstForward)
+            if (printInfo && iterCount == iterPrint)
             {
                 nodeCount -= 1;
                 this->template TypedInput<StatType>(SCALE)->Gradient().Print(L"Backward", L"bnScaleGrad", nodeCount);
@@ -5171,7 +5173,7 @@ public:
             else
                 this->template TypedInput<StatType>(BIAS)->Gradient() += *m_dBias;
 
-            if (printInfo && isFirstForward)
+            if (printInfo && iterCount == iterPrint)
             {
                 this->template TypedInput<StatType>(BIAS)->Gradient().Print(L"Backward", L"bnBiasGrad", nodeCount);
             }
