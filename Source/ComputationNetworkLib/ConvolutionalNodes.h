@@ -15,6 +15,7 @@
 namespace Microsoft { namespace MSR { namespace CNTK {
 
 extern const bool printInfo;
+extern const bool weightInit;
 extern bool isFirstForward;
 extern size_t nodeCount;
 extern size_t iterCount;
@@ -532,11 +533,8 @@ public:
         const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
         Matrix<ElemType> sliceInput1Value = InputRef(1).ValueFor(fr);
 
-        // print the input of convolutional layer
-        if (printInfo)
+        if (weightInit)
         {
-            // input0.Print(L"ConvWeight"); // Print out the weight of Convolutional Node
-
             // If this is first forward, the weight of Convolutional Nodes will be initialized from weight file
             if (isFirstForward)
             {
@@ -563,7 +561,9 @@ public:
                 }
                 InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
             }
-
+        }
+        if (printInfo)
+        {
             if (iterCount == iterPrint)
             {
                 nodeCount += 1;
@@ -571,13 +571,6 @@ public:
 
                 input0.Print(L"Weight", L"convWeight", nodeCount);
             }
-
-            // input0.Print(L"ConvWeight");
-
-            // cout << input0.GetNumRows() << " " << input0.GetNumCols() << "\n";
-            // input0.Print(L"convWeight_cntk.txt");
-            // cout << sliceInput1Value.GetNumRows() << " " << sliceInput1Value.GetNumCols() << "\n";
-            // sliceInput1Value.Print(L"convInput_cntk.txt");
         }
 
         if (!m_transpose)

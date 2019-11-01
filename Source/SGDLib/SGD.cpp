@@ -58,6 +58,7 @@ namespace CNTK
 using namespace std;
 
 extern const bool printInfo;
+extern const bool weightInit;
 extern bool isFirstForward;
 extern size_t nodeCount;
 extern size_t iterCount;
@@ -563,7 +564,7 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
         tensorBoardWriter = make_shared<::CNTK::Internal::TensorBoardFileWriter>(m_tensorBoardLogDir, net);
     }
     
-    if (printInfo)
+    if (weightInit)
     {
         // initialize
         isFirstForward = true;
