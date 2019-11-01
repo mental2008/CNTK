@@ -52,6 +52,9 @@
     <ClCompile Include="TrainingNodes.cpp">
       <Filter>Nodes</Filter>
     </ClCompile>
+    <ClCompile Include="ConvolutionalNodes.cpp">
+      <Filter>Nodes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Include\fileutil.h">

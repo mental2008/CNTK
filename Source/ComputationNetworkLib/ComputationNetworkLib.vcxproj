@@ -145,6 +145,7 @@
     <ClCompile Include="ComputationNetworkScripting.cpp" />
     <ClCompile Include="ComputationNode.cpp" />
     <ClCompile Include="ComputationNodeScripting.cpp" />
+    <ClCompile Include="ConvolutionalNodes.cpp" />
     <ClCompile Include="InputAndParamNodes.cpp" />
     <ClCompile Include="RecurrentNodes.cpp" />
     <ClCompile Include="LinearAlgebraNodes.cpp" />
