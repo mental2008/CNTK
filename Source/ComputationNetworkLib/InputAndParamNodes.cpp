@@ -168,6 +168,13 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
     auto traceLevelParam = configp->Find(L"traceLevel");
     if (traceLevelParam && (int)*traceLevelParam > 0 && !m_initString.empty())
         fprintf(stderr, "%ls: Initializating Parameter[%s] as %ls later when dimensions are fully known.\n", NodeDescription().c_str(), string(GetSampleLayout()).c_str(), m_initString.c_str());
+
+    if (configp->Exists(L"weightFile"))
+    {
+        wstring weightFilePath = configp->Get(L"weightFile");
+        if (weightFilePath != L"")
+            m_weightFile = weightFilePath;
+    }
 }
 
 // helper to cast a shape possibly given as a single size_t to a TensorShape object
@@ -405,6 +412,50 @@ void LearnableParameter<ElemType>::InitFromFile(const wstring& initFromFilePath)
     size_t numRows, numCols;
     auto array = File::LoadMatrixFromTextFile<ElemType>(initFromFilePath, numRows, numCols);
     InitFromArray(array, numRows, numCols);
+}
+
+// initialize the fc weight by reading a matrix from a bin file
+template <class ElemType>
+void LearnableParameter<ElemType>::InitWeightFromBinFile(const wstring& initFromBinFilePath)
+{
+    int numRows, numCols;
+    auto wstr2str = [](wstring wstr) {
+        string str = "";
+        size_t len = wstr.length();
+        for (size_t i(0); i < len; ++i)
+            str += (char)wstr[i];
+        return str;
+    };
+    ifstream binFile(wstr2str(initFromBinFilePath), ios::binary | ios::in);
+    if (!binFile)
+        LogicError("LearnableParameter: InitWeightFromBinFile can not open bin weight file.");
+    binFile.read((char*)&numRows, sizeof(int));
+    binFile.read((char*)&numCols, sizeof(int));
+    LOGPRINTF(stderr, "Load the weight file: %s, numRows = %d, numCols = %d.\n", wstr2str(initFromBinFilePath).c_str(), numRows, numCols);
+
+    if (!this->m_distribute)
+    {
+        if (Value().GetNumRows() != numRows || Value().GetNumCols() != numCols)
+            LogicError("LearnableParameter: InitWeightFromBinFile dimemsion is wrong: [%d, %d] v.s. [%d, %d].", (int)Value().GetNumRows(), (int)Value().GetNumCols(), numRows, numCols);
+        vector<ElemType> array;
+        array.resize(numRows * numCols);
+        for (int i(0); i < numRows; ++i)
+        {
+            for (int j(0); j < numCols; ++j)
+            {
+                float weightElement;
+                binFile.read((char*)&weightElement, sizeof(float));
+                array[j * numRows + i] = (ElemType)weightElement;
+            }
+        }
+        Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
+    }
+    else
+    {
+        // NOT IMPLEMENT
+    }
+
+    binFile.close();
 }
 
 // initialize by reading a matrix from a text file
@@ -710,6 +761,9 @@ void LearnableParameter<ElemType>::InferInputDimsFrom(const TensorShape& otherSh
     }
 #endif
     LazyInitParameters();
+
+    if (m_weightFile != L"")
+        InitWeightFromBinFile(m_weightFile);
 }
 
 template <class ElemType>

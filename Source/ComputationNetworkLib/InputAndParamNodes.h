@@ -53,6 +53,7 @@ public:
         m_initValue = 0;
         m_regMultiplier = 1.0f; // enable reg in update by default
         m_gatheredParams = NULL;
+        m_weightFile = L"";
     }
     LearnableParameter(DEVICEID_TYPE deviceId, const wstring& name, const TensorShape& shape, const ScriptableObjects::IConfigRecordPtr configp = NULL) :
         LearnableParameter(deviceId, name)
@@ -95,6 +96,9 @@ public:
 
     // initialize by reading a matrix from a text file
     void InitFromFile(const std::wstring& initFromFilePath);
+
+    // initialize by reading a matrix from a bin file
+    void InitWeightFromBinFile(const std::wstring& initFromBinFilePath);
 
 public:
     // initialize with random numbers
@@ -202,6 +206,7 @@ private:
     int m_initOutputRank;
     bool m_initOnCPUOnly;
     ElemType m_initValue;
+    std::wstring m_weightFile; // initialize the parameters from weight file
 
     // flags related to gradient update
     float m_regMultiplier; // The multiplier to adjust the L1Reg and L2Reg for Learnable node
