@@ -2640,11 +2640,13 @@ void SGD<ElemType>::UpdateWeights(Matrix<ElemType>& functionValues, Matrix<ElemT
     // clipping gradients to prevent outliers
     ClipGradient(gradientValues, actualMBSize);
 
+    /*
     if (printInfo && iterCount == iterPrint)
     {
         nodeCount += 1;
         gradientValues.Print(L"GradAfterClipping", L"Grad", nodeCount);
     }
+    */
 
     GradientsUpdateType adpType = GradUpdateType();
     double noiseStd = GradientUpdateNoiseStd();

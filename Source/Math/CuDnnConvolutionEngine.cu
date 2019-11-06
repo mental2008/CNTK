@@ -28,6 +28,8 @@ const char* CudaErrString<cudnnStatus_t>(cudnnStatus_t x)
 #define FILTER_FORMAT CUDNN_TENSOR_NCHW
 //#define __PROFILE__
 
+#include <iostream>
+
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -358,7 +360,15 @@ protected:
 #endif
 
 
-        CUDNN_CALL(cudnnConvolutionForward(*m_cudnn, &C::One, m_inT, ptr(in), *m_kernelT, ptr(kernel), *m_conv, m_fwdAlgo.selectedAlgo, ptr(workspace), workspace.BufferSize(), &C::Zero, m_outT, ptr(out)));
+        // CUDNN_CALL(cudnnConvolutionForward(*m_cudnn, &C::One, m_inT, ptr(in), *m_kernelT, ptr(kernel), *m_conv, m_fwdAlgo.selectedAlgo, ptr(workspace), workspace.BufferSize(), &C::Zero, m_outT, ptr(out)));
+        cudnnConvolutionFwdAlgo_t default_fwdAlgo = CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM;
+        // std::cout << workspace.BufferSize() << "\n";
+        size_t tmpSize;
+        CUDNN_CALL(cudnnGetConvolutionForwardWorkspaceSize(*m_cudnn, m_inT, *m_kernelT, *m_conv, m_outT, default_fwdAlgo, &tmpSize));
+        // std::cout << sizeof(ElemType) << "\n";
+        workspace.Resize((tmpSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
+        // std::cout << workspace.BufferSize() << "\n";
+        CUDNN_CALL(cudnnConvolutionForward(*m_cudnn, &C::One, m_inT, ptr(in), *m_kernelT, ptr(kernel), *m_conv, default_fwdAlgo, ptr(workspace), workspace.BufferSize(), &C::Zero, m_outT, ptr(out))); // Set default algorithm
     }
 
     void BackwardDataCore(const Mat& srcGrad, const Mat& kernel, Mat& grad, bool accumulateGradient, Mat& workspace) override
@@ -448,6 +458,14 @@ protected:
         if(m_dataType == CUDNN_DATA_HALF) CUDNN_CALL(cudnnSetConvolutionMathType(*m_conv, m_backDataAlgo.AlgoMathType));
         else CUDNN_CALL(cudnnSetConvolutionMathType(*m_conv, CUDNN_DEFAULT_MATH));
         CUDNN_CALL(cudnnConvolutionBackwardData(*m_cudnn, &C::One, *m_kernelT, ptr(kernel), m_outT, ptr(srcGrad), *m_conv, m_backDataAlgo.selectedAlgo, ptr(workspace), workspace.BufferSize(), accumulateGradient ? &C::One : &C::Zero, m_inT, ptr(grad)));
+        // cudnnConvolutionBwdDataAlgo_t default_backDataAlgo = CUDNN_CONVOLUTION_BWD_DATA_ALGO_1;
+        // size_t tmpSize;
+        // std::cout << workspace.BufferSize() << "\n";
+        // CUDNN_CALL(cudnnGetConvolutionBackwardDataWorkspaceSize(*m_cudnn, *m_kernelT, m_outT, *m_conv, m_inT, default_backDataAlgo, &tmpSize));
+        // std::cout << sizeof(ElemType) << "\n";
+        // workspace.Resize((tmpSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
+        // std::cout << workspace.BufferSize() << "\n";
+        // CUDNN_CALL(cudnnConvolutionBackwardData(*m_cudnn, &C::One, *m_kernelT, ptr(kernel), m_outT, ptr(srcGrad), *m_conv, default_backDataAlgo, ptr(workspace), workspace.BufferSize(), accumulateGradient ? &C::One : &C::Zero, m_inT, ptr(grad))); // Set default algorithm
     }
 
     void BackwardKernelCore(const Mat& srcGrad, const Mat& in, Mat& kernelGrad, bool accumulateGradient, bool /*allowReuse*/, Mat& workspace) override
@@ -548,6 +566,14 @@ protected:
         if(m_dataType == CUDNN_DATA_HALF) CUDNN_CALL(cudnnSetConvolutionMathType(*m_conv, m_backFiltAlgo.AlgoMathType));
         else CUDNN_CALL(cudnnSetConvolutionMathType(*m_conv, CUDNN_DEFAULT_MATH));
         CUDNN_CALL(cudnnConvolutionBackwardFilter(*m_cudnn, &C::One, m_inT, ptr(in), m_outT, ptr(srcGrad), *m_conv, m_backFiltAlgo.selectedAlgo, ptr(workspace), workspace.BufferSize(), accumulateGradient ? &C::One : &C::Zero, *m_kernelT, ptr(kernelGrad)));
+        // cudnnConvolutionBwdFilterAlgo_t default_backFiltAlgo = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1;
+        // size_t tmpSize;
+        // std::cout << workspace.BufferSize() << "\n";
+        // CUDNN_CALL(cudnnGetConvolutionBackwardFilterWorkspaceSize(*m_cudnn, m_inT, m_outT, *m_conv, *m_kernelT, default_backFiltAlgo, &tmpSize));
+        // std::cout << sizeof(ElemType) << "\n";
+        // workspace.Resize((tmpSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
+        // std::cout << workspace.BufferSize() << "\n";
+        // CUDNN_CALL(cudnnConvolutionBackwardFilter(*m_cudnn, &C::One, m_inT, ptr(in), m_outT, ptr(srcGrad), *m_conv, m_backFiltAlgo.selectedAlgo, ptr(workspace), workspace.BufferSize(), accumulateGradient ? &C::One : &C::Zero, *m_kernelT, ptr(kernelGrad))); // Set default algorithm
     }
 
     void EnsurePoolingInitialized() override
