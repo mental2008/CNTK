@@ -173,7 +173,10 @@ LearnableParameter<ElemType>::LearnableParameter(const ScriptableObjects::IConfi
     {
         wstring weightFilePath = configp->Get(L"weightFile");
         if (weightFilePath != L"")
+        {
             m_weightFile = weightFilePath;
+            InitWeightFromBinFile(m_weightFile);
+        }
     }
 }
 
@@ -762,8 +765,8 @@ void LearnableParameter<ElemType>::InferInputDimsFrom(const TensorShape& otherSh
 #endif
     LazyInitParameters();
 
-    if (m_weightFile != L"")
-        InitWeightFromBinFile(m_weightFile);
+    // if (m_weightFile != L"")
+    //     InitWeightFromBinFile(m_weightFile);
 }
 
 template <class ElemType>
