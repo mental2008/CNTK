@@ -47,6 +47,7 @@ const double Pi = acos(-1.0);
 
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 namespace Microsoft
 {
@@ -57,12 +58,12 @@ namespace CNTK
 
 using namespace std;
 
-extern const bool printInfo;
-extern const bool weightInit;
+extern bool printInfo;
+extern bool weightInit;
 extern bool isFirstForward;
 extern size_t nodeCount;
 extern size_t iterCount;
-extern const size_t iterPrint;
+extern size_t epochCount;
 
 // =======================================================================
 // class SGD
@@ -563,12 +564,18 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     {
         tensorBoardWriter = make_shared<::CNTK::Internal::TensorBoardFileWriter>(m_tensorBoardLogDir, net);
     }
-    
-    if (weightInit)
-    {
-        // initialize
-        isFirstForward = true;
-    }
+
+    // Initialize the printInfo & weightInit flag from the environment variables.
+    LOGPRINTF(stderr, "ENVIRONMENT VARIABLE PRINT_INFO = %s.\n", getenv("PRINT_INFO"));
+    LOGPRINTF(stderr, "ENVIRONMENT VARIABLE WEIGHT_INIT = %s.\n", getenv("WEIGHT_INIT"));
+    if (getenv("PRINT_INFO") != NULL && strcmp(getenv("PRINT_INFO"), "TRUE") == 0)
+        printInfo = true;
+    else
+        printInfo = false;
+    if (getenv("WEIGHT_INIT") != NULL && strcmp(getenv("WEIGHT_INIT"), "TRUE") == 0)
+        weightInit = true;
+    else
+        weightInit = false;
 
     // --- MAIN EPOCH LOOP
     for (int i = startEpoch; i < (int) m_maxEpochs; i++) // TODO: why is this an int, and not a size_t?
@@ -579,6 +586,10 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
         {
             ProfilerEnable(true);
         }
+
+        // Update the epoch number during printing information
+        if (printInfo)
+            epochCount = i + 1;
 
         // Synchronize all ranks before proceeding to ensure that
         // rank 0 has finished writing the previous model file
@@ -1269,6 +1280,7 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
     auto forwardPropRoots = evaluationNodes;
     forwardPropRoots.push_back(criterionNodes[0]);
 
+    // Reset the iteration count during printing information.
     if (printInfo)
         iterCount = 0;
 
@@ -1321,6 +1333,7 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
         ComputationNetwork::BumpEvalTimeStamp(featureNodes);
         ComputationNetwork::BumpEvalTimeStamp(labelNodes);
 
+        // Update the iteration number during printing information.
         if (printInfo)
             iterCount += 1;
 
@@ -1455,10 +1468,8 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
 #endif
 
                 // reset the counter of conv and bn in the forward
-                if (printInfo && iterCount == iterPrint)
-                {
+                if (printInfo)
                     nodeCount = 0;
-                }
 
                 // compute eval node first since when gradient is computed the forward function values
                 // may be changed and need to be recomputed when gradient and function value share the same matrix
@@ -1484,9 +1495,9 @@ size_t SGD<ElemType>::TrainOneEpoch(ComputationNetworkPtr net,
                 if (learnRatePerSample > 0.01 * m_minLearnRate) // only compute gradient when learning rate is large enough
                     net->Backprop(criterionNodes[0]);
                 
-                // modify the sign of first forward
-                if (isFirstForward)
-                    isFirstForward = false;
+                // modify the flag after the first forward
+                if (weightInit)
+                    weightInit = false;
 
 #ifdef __PROFILE__
                 endTime = clock();
@@ -2640,14 +2651,6 @@ void SGD<ElemType>::UpdateWeights(Matrix<ElemType>& functionValues, Matrix<ElemT
 
     // clipping gradients to prevent outliers
     ClipGradient(gradientValues, actualMBSize);
-
-    /*
-    if (printInfo && iterCount == iterPrint)
-    {
-        nodeCount += 1;
-        gradientValues.Print(L"GradAfterClipping", L"Grad", nodeCount);
-    }
-    */
 
     GradientsUpdateType adpType = GradUpdateType();
     double noiseStd = GradientUpdateNoiseStd();

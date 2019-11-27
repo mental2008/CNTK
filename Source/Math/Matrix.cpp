@@ -19,6 +19,8 @@
 #include <atomic>
 #include "Quantizers.h"
 #include "half.hpp"
+#include <io.h>
+#include <direct.h>
 #ifndef CPUONLY
 #define ANAMEFORLIB "Cntk.Math.Cuda-" ## CNTK_COMPONENT_VERSION ## ".lib"
 #pragma comment(lib, ANAMEFORLIB) // built by MathCUDA project
@@ -4559,11 +4561,47 @@ void Matrix<ElemType>::Print(const char* matrixName /*=nullptr*/) const
 }
 
 template <class ElemType>
-void Matrix<ElemType>::Print(std::wstring saveDir, std::wstring saveType, size_t count) const
+void Matrix<ElemType>::Print(size_t epochCount, size_t iterCount, size_t nodeCount, std::string saveDir, std::string saveType) const
 {
-    std::wostringstream oss;
-    oss << saveDir << L"\\" << count << L"-" << saveType << "_" << (int)GetNumRows() << L"_" << (int)GetNumCols() << L".txt";
-    std::wstring savePath = oss.str();
+    std::ostringstream oss;
+    
+    // check if saveDir exists
+    // if not, create it
+    oss << saveDir;
+    if (_access(oss.str().c_str(), 00) == -1)
+    {
+        int state = _mkdir(oss.str().c_str());
+        if (state == 0)
+            fprintf(stderr, "Successfully create the directory \"%s\".\n", oss.str().c_str());
+        else
+            RuntimeError("Cannot create the directory \"%s\".", oss.str().c_str());
+    }
+ 
+    // epoch
+    oss << "\\Epoch " << (int)epochCount;
+    if (_access(oss.str().c_str(), 00) == -1)
+    {
+        int state = _mkdir(oss.str().c_str());
+        if (state == 0)
+            fprintf(stderr, "Successfully create the directory \"%s\".\n", oss.str().c_str());
+        else
+            RuntimeError("Cannot create the directory \"%s\".", oss.str().c_str());
+    }
+
+    // iter
+    oss << "\\Iter " << (int)iterCount;
+    if (_access(oss.str().c_str(), 00) == -1)
+    {
+        int state = _mkdir(oss.str().c_str());
+        if (state == 0)
+            fprintf(stderr, "Successfully create the directory \"%s\".\n", oss.str().c_str());
+        else
+            RuntimeError("Cannot create the directory \"%s\".", oss.str().c_str());
+    }
+
+    // file
+    oss << "\\" << (int)nodeCount << "-" << saveType << "_" << (int)GetNumRows() << "_" << (int)GetNumCols() << ".txt";
+    std::string savePath = oss.str();
      
     ofstream file(savePath.c_str(), ios::out);
     if (!file)

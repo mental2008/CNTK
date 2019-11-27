@@ -11,15 +11,16 @@
 #include "ConvolutionEngine.h"
 
 #include <vector>
+#include <io.h>
+#include <direct.h>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
-extern const bool printInfo;
-extern const bool weightInit;
-extern bool isFirstForward;
+extern bool printInfo;
+extern bool weightInit;
 extern size_t nodeCount;
 extern size_t iterCount;
-extern const size_t iterPrint;
+extern size_t epochCount;
 
 // -----------------------------------------------------------------------
 // ConvolutionNodeBase
@@ -533,16 +534,28 @@ public:
         const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
         Matrix<ElemType> sliceInput1Value = InputRef(1).ValueFor(fr);
 
+        // the weight of Convolutional Nodes will be initialized from weight file
         if (weightInit)
         {
-            // If this is first forward, the weight of Convolutional Nodes will be initialized from weight file
-            if (isFirstForward)
+            std::ostringstream oss;
+            oss << "ConvWeight";
+            if (_access(oss.str().c_str(), 00) == -1)
+            {
+                int state = mkdir(oss.str().c_str());
+                if (state == 0)
+                    fprintf(stderr, "Successfully create the directory \"%s\".", oss.str().c_str());
+                else
+                    RuntimeError("Cannot create the directory \"%s\".", oss.str().c_str());
+            }
+
+            // weightFile path
+            oss << "\\ConvWeight_" << (int)input0.GetNumRows() << "_" << (int)input0.GetNumCols() << ".txt";
+            string weightPath = oss.str();
+
+            if (_access(weightPath.c_str(), 00) == 0)
             {
                 std::vector<ElemType> arr;
                 arr.resize(input0.GetNumRows() * input0.GetNumCols());
-                std::wostringstream oss;
-                oss << (int)input0.GetNumRows() << L"_" << (int)input0.GetNumCols() << L".txt";
-                wstring weightPath = L"ConvWeight\\ConvWeight_" + oss.str();
                 ifstream weightFile(weightPath.c_str(), ios::in);
                 if (!weightFile)
                     RuntimeError("Cannot open file %s.", weightPath.c_str());
@@ -560,17 +573,36 @@ public:
                     }
                 }
                 InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
+                weightFile.close();
+                fprintf(stderr, "Successfully load the (conv) weight file \"%s\".\n", weightPath.c_str());
+            }
+            else
+            {
+                // if not exists,  create the weight file
+                ofstream weightFile(weightPath.c_str(), ios::out);
+                int numRows = (int)input0.GetNumRows();
+                int numCols = (int)input0.GetNumCols();
+                weightFile << numRows << " " << numCols << "\n";
+                for (int i = 0; i < numCols; ++i)
+                {
+                    for (int j = 0; j < numRows; ++j)
+                    {
+                        weightFile << (float)input0.GetValue(j, i);
+                        if (j != numRows - 1)
+                            weightFile << " ";
+                    }
+                    if (i != numCols - 1)
+                        weightFile << "\n";
+                }
+                weightFile.close();
+                fprintf(stderr, "Successfully create the (conv) weight file \"%s\".\n", weightPath.c_str());
             }
         }
         if (printInfo)
         {
-            if (iterCount == iterPrint)
-            {
-                nodeCount += 1;
-                sliceInput1Value.Print(L"Forward", L"convInput", nodeCount);
-
-                input0.Print(L"Weight", L"convWeight", nodeCount);
-            }
+            nodeCount += 1;
+            sliceInput1Value.Print(epochCount, iterCount, nodeCount, "Forward", "convInput");
+            input0.Print(epochCount, iterCount, nodeCount, "Weight", "convWeight");
         }
 
         if (!m_transpose)
@@ -584,8 +616,8 @@ public:
         }
 
         // print the output of convolutional layer
-        if (printInfo && iterCount == iterPrint)
-            sliceOutputValue.Print(L"Forward", L"convOutput", nodeCount);
+        if (printInfo)
+            sliceOutputValue.Print(epochCount, iterCount, nodeCount, "Forward", "convOutput");
 
     }
 
@@ -608,10 +640,10 @@ public:
             else
                 m_convEng->BackwardKernel(sliceInput1Value, sliceOutputGrad, grad, !Input(inputIndex)->IsGradientInitializedBy(this), fr.IsAllFrames(), *m_tempMatrixBackward);
 
-            if (printInfo && iterCount == iterPrint)
+            if (printInfo)
             {
                 nodeCount -= 1;
-                grad.Print(L"Backward", L"convGrad", nodeCount);
+                grad.Print(epochCount, iterCount, nodeCount, "Backward", "convGrad");
             }
         }
         else if (inputIndex == 1) // derivative with respect to the input feature

@@ -28,13 +28,16 @@
 #include <fstream>
 #endif
 
+#include <io.h>
+#include <direct.h>
+
 namespace Microsoft { namespace MSR { namespace CNTK {
 
-extern const bool printInfo;
-extern bool isFirstForward;
+extern bool printInfo;
+extern bool weightInit;
 extern size_t nodeCount;
 extern size_t iterCount;
-extern const size_t iterPrint;
+extern size_t epochCount;
 
 // -----------------------------------------------------------------------
 // PlusNode (summand1, summand2)
@@ -655,17 +658,28 @@ public:
         // This will be inefficient. We hope this will be the baseline of a future, more efficient TensorView-based implementation.
         auto inputMBLayout = InputRef(0).GetMBLayout();
 
-        if (printInfo)
+        if (weightInit)
         {
-
-            if (isFirstForward)
+            std::ostringstream oss;
+            oss << "fcWeight";
+            if (_access(oss.str().c_str(), 00) == -1)
             {
-                const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
+                int state = _mkdir(oss.str().c_str());
+                if (state == 0)
+                    fprintf(stderr, "Successfully create the directory \"%s\".\n", oss.str().c_str());
+                else
+                    RuntimeError("Cannot create the directory %s.", oss.str().c_str());
+            }
+
+            // weightFile path
+            const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
+            oss << "\\fcWeight_" << (int)input0.GetNumRows() << "_" << (int)input0.GetNumCols() << ".txt";
+            string weightPath = oss.str();
+
+            if (_access(weightPath.c_str(), 00) == 0)
+            {
                 std::vector<ElemType> arr;
                 arr.resize(input0.GetNumRows() * input0.GetNumCols());
-                std::wostringstream oss;
-                oss << (int)input0.GetNumRows() << L"_" << (int)input0.GetNumCols() << L".txt";
-                wstring weightPath = L"fcWeight\\fcWeight_" + oss.str();
                 ifstream weightFile(weightPath.c_str(), ios::in);
                 if (!weightFile)
                     RuntimeError("Cannot open file %s.", weightPath.c_str());
@@ -683,13 +697,37 @@ public:
                     }
                 }
                 InputRef(0).Value().SetValue(numRows, numCols, m_deviceId, const_cast<ElemType*>(arr.data()), matrixFlagNormal);
+                weightFile.close();
+                fprintf(stderr, "Successfully load the (fc) weight file \"%s\".\n", weightPath.c_str());
             }
-
-            if (iterCount == iterPrint)
+            else
             {
-                nodeCount += 1;
-                InputRef(1).Value().Print(L"Forward", L"fcInput", nodeCount);
+                // if not exists,  create the weight file
+                ofstream weightFile(weightPath.c_str(), ios::out);
+                int numRows = (int)input0.GetNumRows();
+                int numCols = (int)input0.GetNumCols();
+                weightFile << numRows << " " << numCols << "\n";
+                for (int i = 0; i < numCols; ++i)
+                {
+                    for (int j = 0; j < numRows; ++j)
+                    {
+                        weightFile << (float)input0.GetValue(j, i);
+                        if (j != numRows - 1)
+                            weightFile << " ";
+                    }
+                    if (i != numCols - 1)
+                        weightFile << "\n";
+                }
+                weightFile.close();
+                fprintf(stderr, "Successfully create the (fc) weight file \"%s\".\n", weightPath.c_str());
             }
+        }
+        if (printInfo)
+        {
+            nodeCount += 1;
+            InputRef(1).Value().Print(epochCount, iterCount, nodeCount, "Forward", "fcInput");
+            const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
+            input0.Print(epochCount, iterCount, nodeCount, "Weight", "fcWeight");
         }
 
 #ifdef __EXTRACT_WEIGHT__
@@ -790,9 +828,9 @@ public:
         auto output = OneSampleTensorFor(-1, /*gradient=*/false, fr);
         output.AssignMatrixProductOf(false/*transC*/, input0, m_transpose/*transA*/, input1, false/*transB*/, 1.0f, this->m_pQuantizedMultiplier);
 
-        if (printInfo && iterCount == iterPrint)
+        if (printInfo)
         {
-            output.GetSOB().Print(L"Forward", L"fcOutput", nodeCount);
+            output.GetSOB().Print(epochCount, iterCount, nodeCount, "Forward", "fcOutput");
         }
     }
 
@@ -943,10 +981,10 @@ public:
             else
                 input0Gradient.AddMatrixProductOf(m_transpose/*transC*/, outputGradient, false/*transA*/, input1, true/*transB*/);
 
-            if (printInfo && iterCount == iterPrint)
+            if (printInfo)
             {
                 nodeCount -= 1;
-                input0Gradient.GetSOB().Print(L"Backward", L"fcGrad", nodeCount);
+                input0Gradient.GetSOB().Print(epochCount, iterCount, nodeCount, "Backward", "fcGrad");
             }
         }
         else if (inputIndex == 1) // right derivative

@@ -25,11 +25,10 @@
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
-extern const bool printInfo;
-extern bool isFirstForward;
+extern bool printInfo;
 extern size_t nodeCount;
 extern size_t iterCount;
-extern const size_t iterPrint;
+extern size_t epochCount;
 
 // Names of random variable types
 static const wstring RandomDistributionTypeUniform   = L"uniform";
@@ -2195,10 +2194,10 @@ public:
     {
         FrameRange fr(InputRef(0).GetMBLayout());
 
-        if (printInfo && iterCount == iterPrint)
+        if (printInfo)
         {
             nodeCount += 1;
-            InputRef(1).Value().Print(L"Forward", L"ceInput", nodeCount);
+            InputRef(1).Value().Print(epochCount, iterCount, nodeCount, "Forward", "ceInput");
         }
 
         // first compute the softmax (column-wise)
@@ -2222,8 +2221,8 @@ public:
 #if DUMPOUTPUT
         Value().Print("CrossEntropyWithSoftmaxNode");
 #endif
-        if (printInfo && iterCount == iterPrint)
-            Value().Print(L"Forward", L"ceOutput", nodeCount);
+        if (printInfo)
+            Value().Print(epochCount, iterCount, nodeCount, "Forward", "ceOutput");
 
     }
 
@@ -5053,11 +5052,11 @@ public:
         m_gradientValid = false;
 
         // print the input and output of Batch Normalization Layers
-        if (printInfo && iterCount == iterPrint)
+        if (printInfo)
         {
             nodeCount += 1;
-            sliceInputValue.Print(L"Forward", L"bnInput", nodeCount);
-            sliceOutputValue.Print(L"Forward", L"bnOutput", nodeCount);
+            sliceInputValue.Print(epochCount, iterCount, nodeCount, "Forward", "bnInput");
+            sliceOutputValue.Print(epochCount, iterCount, nodeCount, "Forward", "bnOutput");
         }
 
     }
@@ -5158,10 +5157,10 @@ public:
             else
                 this->template TypedInput<StatType>(SCALE)->Gradient() += *m_dScale;
 
-            if (printInfo && iterCount == iterPrint)
+            if (printInfo)
             {
                 nodeCount -= 1;
-                this->template TypedInput<StatType>(SCALE)->Gradient().Print(L"Backward", L"bnScaleGrad", nodeCount);
+                this->template TypedInput<StatType>(SCALE)->Gradient().Print(epochCount, iterCount, nodeCount, "Backward", "bnScaleGrad");
             }
         }
         else if (inputIndex == BIAS) // derivative with respect to the bias, precomputed during input derivative computation
@@ -5173,9 +5172,9 @@ public:
             else
                 this->template TypedInput<StatType>(BIAS)->Gradient() += *m_dBias;
 
-            if (printInfo && iterCount == iterPrint)
+            if (printInfo)
             {
-                this->template TypedInput<StatType>(BIAS)->Gradient().Print(L"Backward", L"bnBiasGrad", nodeCount);
+                this->template TypedInput<StatType>(BIAS)->Gradient().Print(epochCount, iterCount, nodeCount, "Backward", "bnBiasGrad");
             }
         }
         // No derivatives with respect to running mean and variance.
