@@ -1557,7 +1557,7 @@ public:
         auto X = InputRef(1).ValueFor(fr);
         auto& weight = InputRef(2).Value();
 
-        if (m_weightNormalize && IsParameterUpdateRequired())
+        if (m_weightNormalize)
         {
             weight.VectorNorm2(*m_weightMagnitude, false);
             weight.ColumnElementDivideBy(*m_weightMagnitude);

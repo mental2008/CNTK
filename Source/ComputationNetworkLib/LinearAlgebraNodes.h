@@ -28,8 +28,14 @@
 #include <fstream>
 #endif
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #include <io.h>
 #include <direct.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -662,6 +668,8 @@ public:
         {
             std::ostringstream oss;
             oss << "fcWeight";
+
+            #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__) // Windows
             if (_access(oss.str().c_str(), 00) == -1)
             {
                 int state = _mkdir(oss.str().c_str());
@@ -670,13 +678,27 @@ public:
                 else
                     RuntimeError("Cannot create the directory %s.", oss.str().c_str());
             }
+            #else // Linux
+            if (access(oss.str().c_str(), 00) == -1)
+            {
+                int state = mkdir(oss.str().c_str(), S_IRWXU);
+                if (state == 0)
+                    fprintf(stderr, "Successfully create the directory \"%s\".\n", oss.str().c_str());
+                else
+                    RuntimeError("Cannot create the directory %s.", oss.str().c_str());
+            }
+            #endif
 
             // weightFile path
             const Matrix<ElemType>& input0 = InputRef(0).ValueAsMatrix();
             oss << "\\fcWeight_" << (int)input0.GetNumRows() << "_" << (int)input0.GetNumCols() << ".txt";
             string weightPath = oss.str();
 
+            #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__) // Windows
             if (_access(weightPath.c_str(), 00) == 0)
+            #else
+            if (access(weightPath.c_str(), 00) == 0)
+            #endif
             {
                 std::vector<ElemType> arr;
                 arr.resize(input0.GetNumRows() * input0.GetNumCols());
