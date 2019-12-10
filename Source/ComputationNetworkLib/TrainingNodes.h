@@ -21,6 +21,11 @@
 #include <memory>
 #include <random>
 
+#define EXTRACT_FEATURE
+#ifdef EXTRACT_FEATURE
+#include <fstream>
+#endif
+
 namespace Microsoft { namespace MSR { namespace CNTK {
 
 // Names of random variable types
@@ -650,6 +655,24 @@ public:
         InputRef(0).MaskedValueFor(fr).VectorMax(*m_label, *m_labelValue, true /*isColWise*/);
         auto X = InputRef(1).ValueFor(fr);
         auto& weight = InputRef(2).Value();
+
+#ifdef EXTRACT_FEATURE
+        ofstream featureFile("feature.bin", ios::out | ios::app | ios::binary);
+        if (!featureFile)
+            RuntimeError("Cannot create the feature file.");
+        size_t featureNumRows, featureNumCols;
+        featureNumRows = X.GetNumRows();
+        featureNumCols = X.GetNumCols(); // batch_size
+        for (int i = 0; i < featureNumCols; ++i)
+        {
+            for (int j = 0; j < featureNumRows; ++j)
+            {
+                float featureValue = (float)X.GetValue(j, i);
+                featureFile.write((char*)&featureValue, sizeof(float));
+            }
+        }
+        featureFile.close();
+#endif
 
         if (m_weightNormalize)
         {
