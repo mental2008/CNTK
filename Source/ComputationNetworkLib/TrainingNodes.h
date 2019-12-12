@@ -659,10 +659,11 @@ public:
 #ifdef EXTRACT_FEATURE
         ofstream featureFile("feature.bin", ios::out | ios::app | ios::binary);
         if (!featureFile)
-            RuntimeError("Cannot create the feature file.");
+            RuntimeError("Cannot create or open the feature file \"feature.bin\".");
         size_t featureNumRows, featureNumCols;
         featureNumRows = X.GetNumRows();
         featureNumCols = X.GetNumCols(); // batch_size
+        fprintf(stderr, "Start extracting features of this minibatch.\n");
         for (int i = 0; i < featureNumCols; ++i)
         {
             for (int j = 0; j < featureNumRows; ++j)
@@ -671,6 +672,7 @@ public:
                 featureFile.write((char*)&featureValue, sizeof(float));
             }
         }
+        fprintf(stderr, "Finish extracting features of this minibatch, total size = %zu.\n", featureNumCols);
         featureFile.close();
 #endif
 
