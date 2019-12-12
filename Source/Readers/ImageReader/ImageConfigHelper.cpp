@@ -17,6 +17,7 @@ ImageConfigHelper::ImageConfigHelper(const ConfigParameters& config)
 {
     std::vector<std::string> featureNames = GetSectionsWithParameter("ImageReader", config, "width");
     std::vector<std::string> labelNames = GetSectionsWithParameter("ImageReader", config, "labelDim");
+    std::vector<std::string> guideFeaturesNames = GetSectionsWithParameter("ImageReader", config, "featureLength");
 
     // REVIEW alexeyk: currently support only one feature and label section.
     if (featureNames.size() != 1 || labelNames.size() != 1)
@@ -25,6 +26,19 @@ ImageConfigHelper::ImageConfigHelper(const ConfigParameters& config)
             "ImageReader currently supports a single feature and label stream. '%d' features , '%d' labels found.",
             static_cast<int>(featureNames.size()),
             static_cast<int>(labelNames.size()));
+    }
+
+    if (guideFeaturesNames.size() > 1)
+    {
+        RuntimeError(
+            "ImageReader currently supports a single big model feature stream. '%d' features of big model found.",
+            static_cast<int>(guideFeaturesNames.size()));
+    }
+    else if (guideFeaturesNames.size() == 1)
+    {
+        ConfigParameters guideFeatures = config(guideFeaturesNames[0]);
+        size_t featureLength = guideFeatures("featureLength");
+        size_t sampleSize = guideFeatures("sampleSize");
     }
 
     ConfigParameters featureSection = config(featureNames[0]);
