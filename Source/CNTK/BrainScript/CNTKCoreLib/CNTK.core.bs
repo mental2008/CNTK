@@ -580,6 +580,11 @@ CNTK2 = [
     // Changes: Matrix -> Tensor. A -> x, B -> y. Data must come on y ("default parameter") hence not using _
     Times(x, y, outputRank=1, inferInputRankToMap=-1, tag='') = new ComputationNode [ operation = 'Times' ; inputs = _AsNodes (x : y) /*plus the function args*/ ]
 
+	#
+	# Guide feature loss node
+	#
+	GuideFeatureLoss(featureSequence, outVectorSequence, featureFile='', normType=2, tag='') = 
+		new ComputationNode [ operation = 'GuideFeatureLoss' ; inputs = _AsNodes (featureSequence : outVectorSequence) /*plus the function args*/ ]
 
     #
     # Distributed fully connected node

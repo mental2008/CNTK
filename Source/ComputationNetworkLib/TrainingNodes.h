@@ -21,6 +21,7 @@
 #include <list>
 #include <memory>
 #include <random>
+#include <fstream>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -2106,6 +2107,56 @@ private:
 
 template class SquareErrorNode<float>;
 template class SquareErrorNode<double>;
+
+template <class ElemType>
+class GuideFeatureLossNode : public ComputationNodeNonLooping /*ComputationNode*/<ElemType>, public NumInputs<1>
+{
+    typedef ComputationNodeNonLooping<ElemType> Base;
+    UsingComputationNodeMembersBoilerplate;
+    static const std::wstring TypeName()
+    {
+        return L"GuideFeatureLoss";
+    }
+
+public:
+    GuideFeatureLossNode(const Microsoft::MSR::ScriptableObjects::IConfigRecordPtr configp)
+        : GuideFeatureLossNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get("featureFile"), configp->Get("normType"))
+    {
+        AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
+    }
+
+    GuideFeatureLossNode(DEVICEID_TYPE deviceId, const wstring& name, wstring& featureFile, size_t normType = 2)
+        : Base(deviceId, name), m_featureFile(featureFile), m_normType(normType)
+    {
+    }
+
+    virtual void UpdateFunctionMBSize() override
+    {
+        m_guideFeature->Resize(InputRef(0)->Value());
+    }
+
+    virtual void BackpropToNonLooping(size_t inputIndex) override
+    {
+        if (inputIndex == 0)
+        {
+
+        }
+    }
+
+    virtual void /*ComputationNodeNonLooping::*/ ForwardPropNonLooping() override
+    {
+        
+    }
+
+    virtual void /*ComputationNodeBase::*/ Validate(bool isFinalValidationPass) override
+    {
+    }
+
+    wstring m_featureFile;
+    size_t m_normType;
+
+    shared_ptr<Matrix<ElemType>> m_guideFeature;
+};
 
 // -----------------------------------------------------------------------
 // CrossEntropyWithSoftmaxNode (labels, prediction)
