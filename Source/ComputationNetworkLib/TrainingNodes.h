@@ -2120,43 +2120,133 @@ class GuideFeatureLossNode : public ComputationNodeNonLooping /*ComputationNode*
 
 public:
     GuideFeatureLossNode(const Microsoft::MSR::ScriptableObjects::IConfigRecordPtr configp)
-        : GuideFeatureLossNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get("featureFile"), configp->Get("normType"))
+        : GuideFeatureLossNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"featureDim"), configp->Get(L"featureFile"), configp->Get(L"normType"))
     {
         AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
     }
 
-    GuideFeatureLossNode(DEVICEID_TYPE deviceId, const wstring& name, wstring& featureFile, size_t normType = 2)
-        : Base(deviceId, name), m_featureFile(featureFile), m_normType(normType)
+    GuideFeatureLossNode(DEVICEID_TYPE deviceId, const wstring& name, size_t featureDim = 256, wstring featureFile = L"", size_t normType = 2)
+        : Base(deviceId, name), m_featureDim(featureDim), m_featurePath(featureFile), m_normType(normType)
     {
+        m_featureFile.open(m_featurePath, ios::in | ios::binary);
+        if (!m_featureFile.is_open())
+            RuntimeError("Failed to open %s.", m_featurePath.c_str());
+    }
+
+    ~GuideFeatureLossNode()
+    {
+        m_featureFile.close();
     }
 
     virtual void UpdateFunctionMBSize() override
     {
-        m_guideFeature->Resize(InputRef(0)->Value());
+        FrameRange fr(InputRef(0).GetMBLayout());
+        m_guideFeature->Resize(InputRef(0).ValueFor(fr));
     }
 
     virtual void BackpropToNonLooping(size_t inputIndex) override
     {
         if (inputIndex == 0)
         {
-
+            FrameRange fr(InputRef(0).GetMBLayout());
+            auto gradient = InputRef(0).GradientFor(fr);
+            Matrix<ElemType>::AssignScaledDifference(Gradient(), InputRef(0).ValueFor(fr), *m_guideFeature, gradient);
+            gradient *= (ElemType)2 / (InputRef(0).ValueFor(fr).GetNumRows() * InputRef(0).ValueFor(fr).GetNumCols());
         }
     }
 
     virtual void /*ComputationNodeNonLooping::*/ ForwardPropNonLooping() override
     {
-        
+        FrameRange fr(InputRef(0).GetMBLayout());
+        std::vector<std::size_t> minibatchID = Globals::GetMinibatchID();
+        Globals::ClearMinibatchID();
+        size_t minibatchSize = minibatchID.size();
+        std::vector<ElemType> array;
+        array.resize(minibatchSize * m_featureDim);
+        for (size_t j = 0; j < minibatchSize; ++j)
+        {
+            size_t id = minibatchID[j];
+            size_t startPos = id * m_featureDim * sizeof(float);
+            m_featureFile.seekg(startPos, ios::beg);
+            for (size_t i = 0; i < m_featureDim; ++i)
+            {
+                float guideFeatureElement;
+                m_featureFile.read((char*)&guideFeatureElement, sizeof(float));
+                array[j * m_featureDim + i] = (ElemType)guideFeatureElement;
+            }
+        }
+        m_guideFeature->SetValue(m_featureDim, minibatchSize, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
+
+        Value().SetValue(0);
+        if (m_normType == 2)
+        {
+            Value().AssignDifferenceOf(InputRef(0).ValueFor(fr), *m_guideFeature);
+            Value() ^= 2;
+            ElemType loss = Value().SumOfElements() / (ElemType)(minibatchSize * m_featureDim);
+            Matrix<ElemType> temp(1, 1, m_deviceId);
+            temp.SetValue(loss);
+            Value().SetValue(temp);
+        }
+        else
+        {
+            LogicError("This normalizeType is not supported yet.");
+        }
     }
 
     virtual void /*ComputationNodeBase::*/ Validate(bool isFinalValidationPass) override
     {
+        ValidateUnaryMap(isFinalValidationPass);
     }
 
-    wstring m_featureFile;
+    virtual void CopyTo(ComputationNodeBasePtr nodeP, const std::wstring& newName, const CopyNodeFlags flags) const override
+    {
+        Base::CopyTo(nodeP, newName, flags);
+        if (flags & CopyNodeFlags::copyNodeValue)
+        {
+            auto node = dynamic_pointer_cast<GuideFeatureLossNode<ElemType>>(nodeP);
+            node->m_guideFeature->SetValue(*m_guideFeature);
+        }
+    }
+
+    // request matrices needed to do node function value evaluation
+    virtual void RequestMatricesBeforeForwardProp(MatrixPool& matrixPool)
+    {
+        Base::RequestMatricesBeforeForwardProp(matrixPool);
+        RequestMatrixFromPool(m_guideFeature, matrixPool);
+    }
+
+    // release gradient and temp matrices that no longer needed after all the children's gradients are computed.
+    virtual void ReleaseMatricesAfterBackprop(MatrixPool& matrixPool)
+    {
+        Base::ReleaseMatricesAfterBackprop(matrixPool);
+        ReleaseMatrixToPool(m_guideFeature, matrixPool);
+    }
+
+    void Save(File& fstream) const override
+    {
+        Base::Save(fstream);
+        fstream << m_featurePath;
+        fstream << m_normType;
+    }
+
+    void Load(File& fstream, size_t modelVersion) override
+    {
+        Base::Load(fstream, modelVersion);
+        fstream >> m_featurePath;
+        fstream >> m_normType;
+    }
+
+protected:
+    size_t m_featureDim;
+    wstring m_featurePath;
+    ifstream m_featureFile;
     size_t m_normType;
 
     shared_ptr<Matrix<ElemType>> m_guideFeature;
 };
+
+template class GuideFeatureLossNode<float>;
+template class GuideFeatureLossNode<double>;
 
 // -----------------------------------------------------------------------
 // CrossEntropyWithSoftmaxNode (labels, prediction)

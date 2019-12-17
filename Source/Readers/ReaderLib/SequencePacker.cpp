@@ -11,6 +11,7 @@
 #include <inttypes.h>
 #include "SequencePacker.h"
 #include "ReaderUtil.h"
+#include "Globals.h"
 
 namespace CNTK {
 
@@ -185,6 +186,11 @@ MBLayoutPtr SequencePacker::PackDenseStream(const StreamBatch& batch, size_t str
         const auto& sequence = batch[sequenceInfo.seqId];
         size_t numSamples = sequence->m_numberOfSamples;
         assert(numSamples == sequenceInfo.GetNumTimeSteps());
+
+        if (streamIndex == 0)
+        {
+            Globals::AddMinibatchID(sequence->m_key.m_sequence);
+        }
 
         char* bufferPtr = buffer.m_data.get();
         // Iterate over all samples in the sequence, keep track of the sample offset (which is especially

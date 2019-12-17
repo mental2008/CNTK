@@ -135,6 +135,7 @@ static shared_ptr<ComputationNode<ElemType>> CreateStandardNode(const std::wstri
     else if (nodeType == OperationNameOf(MarginInnerProductNode))               return New<MarginInnerProductNode<ElemType>>(forward<_Types>(_Args)...);
     else if (nodeType == OperationNameOf(FeatureNormalizeNode))                 return New<FeatureNormalizeNode<ElemType>>(forward<_Types>(_Args)...);
     else if (nodeType == OperationNameOf(AdditiveFullConnectionNode))           return New<AdditiveFullConnectionNode<ElemType>>(forward<_Types>(_Args)...);
+    else if (nodeType == OperationNameOf(GuideFeatureLossNode))                 return New<GuideFeatureLossNode<ElemType>>(forward<_Types>(_Args)...);
     else if (nodeType == OperationNameOf(ArcMarginProductNode))                 return New<ArcMarginProductNode<ElemType>>(forward<_Types>(_Args)...);
     else if (nodeType == OperationNameOf(CenterLossNode))                       return New<CenterLossNode<ElemType>>(forward<_Types>(_Args)...);
     else if (nodeType == OperationNameOf(GlobalConcatNode))                     return New<GlobalConcatNode<ElemType>>(forward<_Types>(_Args)...);

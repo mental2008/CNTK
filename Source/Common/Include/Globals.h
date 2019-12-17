@@ -7,6 +7,7 @@
 
 #include "ProgressTracing.h"
 #include <atomic>
+#include <vector>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -48,6 +49,12 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 
         static void SetBNMomentum(double BNMomentum) { m_BNMomentum = BNMomentum; }
         static double GetBNMomentum() { return m_BNMomentum; }
+
+        static void SetEpoch(size_t epoch) { m_epoch = epoch; }
+        static std::size_t GetEpoch() { return m_epoch; }
+        static void ClearMinibatchID() { m_minibatchID.clear(); }
+        static void AddMinibatchID(std::size_t seqID) { m_minibatchID.push_back(seqID); }
+        static std::vector<std::size_t> GetMinibatchID() { return m_minibatchID; }
     private:
         static std::atomic<bool> m_forceDeterministicAlgorithms;
         // The global flag to enable matrices values in forward and backward prop
@@ -64,5 +71,8 @@ namespace Microsoft { namespace MSR { namespace CNTK {
         // If m_useBNMomentum == true, the BN Momentum will be overwrote as m_BNMomentum, regardless bnTimeConst.
         static std::atomic<bool> m_useBNMomentum;
         static std::atomic<double> m_BNMomentum;
+
+        static std::atomic<std::size_t> m_epoch;
+        static std::vector<std::size_t> m_minibatchID;
     };
 }}}

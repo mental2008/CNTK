@@ -25,4 +25,7 @@ namespace Microsoft { namespace MSR { namespace CNTK {
 
     std::atomic<bool> Globals::m_useBNMomentum(false);
     std::atomic<double> Globals::m_BNMomentum(1.0);
+
+    std::atomic<std::size_t> Globals::m_epoch(0);
+    std::vector<std::size_t> Globals::m_minibatchID({});
 }}}

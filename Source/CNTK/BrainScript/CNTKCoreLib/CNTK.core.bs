@@ -131,6 +131,12 @@ GlobalConcatLayer {blockIndex, growthRate, segmentIndex, segmentNum} =
     apply (outProbVectorSequence) = GlobalConcat(outProbVectorSequence, blockIndex, growthRate, segmentIndex, segmentNum)
 }.apply
 
+# GuideFeatureLossLayer
+GuideFeatureLossLayer {featureDim=256, featureFile='', normType=2} =
+{
+	apply (featureSequence) = GuideFeatureLoss(featureSequence, featureDim=featureDim, featureFile=featureFile, normType=normType)
+}.apply
+
 # CrossEntropyWithSoftmaxLayer -- create a cross entropy with softmax layer, which support label smoothing feature
 CrossEntropyWithSoftmaxLayer {smoothRate=0} =
 {
@@ -484,6 +490,7 @@ FeatureNormalize        = CNTK2.FeatureNormalize
 AdditiveFullConnection  = CNTK2.AdditiveFullConnection
 ArcMarginProduct        = CNTK2.ArcMarginProduct
 CenterLoss              = CNTK2.CenterLoss
+GuideFeatureLoss		= CNTK2.GuideFeatureLoss
 GlobalConcat            = CNTK2.GlobalConcat
 Dropout                 = CNTK2.Dropout
 ElementTimes            = CNTK2.ElementTimes
@@ -583,8 +590,8 @@ CNTK2 = [
 	#
 	# Guide feature loss node
 	#
-	GuideFeatureLoss(featureSequence, outVectorSequence, featureFile='', normType=2, tag='') = 
-		new ComputationNode [ operation = 'GuideFeatureLoss' ; inputs = _AsNodes (featureSequence : outVectorSequence) /*plus the function args*/ ]
+	GuideFeatureLoss(featureSequence, featureDim=256, featureFile='', normType=2, tag='') = 
+		new ComputationNode [ operation = 'GuideFeatureLoss' ; inputs = _AsNodes (featureSequence) /*plus the function args*/ ]
 
     #
     # Distributed fully connected node

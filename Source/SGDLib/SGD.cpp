@@ -576,6 +576,8 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
         Timer timer;
         timer.Start();
 
+        Globals::SetEpoch(i); // Set epoch number
+
         // set dropout rate for this epoch
         // We use the same seed across workers until parallel training kicks in to ensure that the workers have identical models
         size_t parallelWorkerIdx = ((m_mpi == nullptr) || !UsingParallelTrain(i)) ? 0 : m_mpi->CurrentNodeRank();
