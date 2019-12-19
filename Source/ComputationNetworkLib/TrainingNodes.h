@@ -23,6 +23,7 @@
 #include <memory>
 #include <random>
 #include <fstream>
+#include <sstream>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
 
@@ -2132,9 +2133,18 @@ public:
     GuideFeatureLossNode(DEVICEID_TYPE deviceId, const wstring& name, size_t featureDim = 256, wstring featureFile = L"", size_t normType = 2)
         : Base(deviceId, name), m_featureDim(featureDim), m_featurePath(featureFile), m_normType(normType)
     {
-        m_featureFile.open(m_featurePath, ios::in | ios::binary);
+        auto wstr2str = [](wstring wstr) {
+            string str = "";
+            size_t len = wstr.length();
+            for (size_t i(0); i < len; ++i)
+                str += (char)wstr[i];
+            return str;
+        };
+        std::string featurePath = wstr2str(m_featurePath);
+        m_featureFile.open(featurePath, ios::in | ios::binary);
         if (!m_featureFile.is_open())
-            RuntimeError("Failed to open %s.", m_featurePath.c_str());
+            RuntimeError("Failed to open %s.", featurePath.c_str());
+        fprintf(stderr, "Load the feature file %s.\n", featurePath.c_str());
     }
 
     ~GuideFeatureLossNode()
@@ -2174,7 +2184,11 @@ public:
         FrameRange fr(InputRef(0).GetMBLayout());
         std::vector<std::size_t> minibatchID;
         size_t minibatchSize = InputRef(0).ValueFor(fr).GetNumCols();
-        ifstream minibatchIDFile("minibatchID.bin", ios::binary | ios::in);
+
+        std::stringstream minibatchIDName;
+        minibatchIDName << "minibatchID-" << Globals::GetRank() << ".bin";
+        ifstream minibatchIDFile(minibatchIDName.str(), ios::binary | ios::in);
+
         if (!minibatchIDFile.is_open())
             RuntimeError("Failed to open \"minibatchID.bin\".");
         minibatchIDFile.seekg(m_samples * sizeof(size_t), ios::beg);

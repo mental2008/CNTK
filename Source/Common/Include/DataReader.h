@@ -323,6 +323,11 @@ public:
         NOT_IMPLEMENTED;
     }
 
+    virtual void SetRank(size_t rank) const
+    {
+        Globals::SetRank(rank);
+    }
+
     // Workaround for the two-forward-pass sequence and ctc training, which
     // allows processing more utterances at the same time. Only used in
     // Kaldi2Reader.

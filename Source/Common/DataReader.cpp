@@ -15,6 +15,7 @@
 #include "DataReader.h"
 #include "Config.h"
 #include "ScriptableObjects.h"
+#include "Globals.h"
 #include <string>
 
 using namespace std;
@@ -140,6 +141,7 @@ DataReader::DataReader(const ConfigRecordType& config)
     {
         const ConfigRecordType& thisIO = hasMultipleReaders ? config(ioName) : config /*legacy*/;
         m_dataReaders[ioName]->Init(thisIO);
+        m_dataReaders[ioName]->SetRank(Globals::GetRank());
 
         // pass on some global option    --TODO: Why is this not done inside each reader??
         size_t nbrUttPerMinibatch = config(L"nbruttsineachrecurrentiter", (size_t) 1);

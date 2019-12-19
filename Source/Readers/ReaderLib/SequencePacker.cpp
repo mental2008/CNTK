@@ -13,6 +13,7 @@
 #include "ReaderUtil.h"
 #include "Globals.h"
 #include <fstream>
+#include <sstream>
 
 namespace CNTK {
 
@@ -176,7 +177,9 @@ MBLayoutPtr SequencePacker::PackDenseStream(const StreamBatch& batch, size_t str
     ofstream minibatchID;
     if (streamIndex == 0)
     {
-        minibatchID.open("minibatchID.bin", ios::binary | ios::out | ios::app);
+        std::stringstream fileStream;
+        fileStream << "minibatchID-" << Globals::GetRank() << ".bin";
+        minibatchID.open(fileStream.str(), ios::binary | ios::out | ios::app);
         if (!minibatchID.is_open())
             RuntimeError("Failed to create the file \"minibatchID.bin\".");
     }

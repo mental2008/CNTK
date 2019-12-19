@@ -114,6 +114,11 @@ public:
         return m_endOfSweep;
     }
 
+    virtual void SetRank(size_t rank) const
+    {
+        Globals::SetRank(rank);
+    }
+
 private:
 
     void StartAsyncPrefetching();
