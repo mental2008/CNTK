@@ -132,9 +132,9 @@ GlobalConcatLayer {blockIndex, growthRate, segmentIndex, segmentNum} =
 }.apply
 
 # GuideFeatureLossLayer
-GuideFeatureLossLayer {featureDim=256, featureFile='', normType=2} =
+GuideFeatureLossLayer {featureDim=256, featureFile='', normType=2, weight='0.0'} =
 {
-	apply (featureSequence) = GuideFeatureLoss(featureSequence, featureDim=featureDim, featureFile=featureFile, normType=normType)
+	apply (featureSequence) = GuideFeatureLoss(featureSequence, featureDim=featureDim, featureFile=featureFile, normType=normType, weight=weight)
 }.apply
 
 # CrossEntropyWithSoftmaxLayer -- create a cross entropy with softmax layer, which support label smoothing feature
@@ -590,7 +590,7 @@ CNTK2 = [
 	#
 	# Guide feature loss node
 	#
-	GuideFeatureLoss(featureSequence, featureDim=256, featureFile='', normType=2, tag='') = 
+	GuideFeatureLoss(featureSequence, featureDim=256, featureFile='', normType=2, weight='0.0', tag='') = 
 		new ComputationNode [ operation = 'GuideFeatureLoss' ; inputs = _AsNodes (featureSequence) /*plus the function args*/ ]
 
     #

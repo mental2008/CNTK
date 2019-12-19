@@ -12,6 +12,7 @@
 #include "SequencePacker.h"
 #include "ReaderUtil.h"
 #include "Globals.h"
+#include <fstream>
 
 namespace CNTK {
 
@@ -172,6 +173,14 @@ MBLayoutPtr SequencePacker::PackDenseStream(const StreamBatch& batch, size_t str
 
     const auto& sequenceInfos = pMBLayout->GetAllSequences();
 
+    ofstream minibatchID;
+    if (streamIndex == 0)
+    {
+        minibatchID.open("minibatchID.bin", ios::binary | ios::out | ios::app);
+        if (!minibatchID.is_open())
+            RuntimeError("Failed to create the file \"minibatchID.bin\".");
+    }
+
     // Iterate over sequences in the layout, copy samples from the
     // source sequences into the buffer (at appropriate offsets).
     for (int i = 0; i < sequenceInfos.size(); ++i)
@@ -189,7 +198,7 @@ MBLayoutPtr SequencePacker::PackDenseStream(const StreamBatch& batch, size_t str
 
         if (streamIndex == 0)
         {
-            Globals::AddMinibatchID(sequence->m_key.m_sequence);
+            minibatchID.write((char*)&(sequence->m_key.m_sequence), sizeof(size_t));
         }
 
         char* bufferPtr = buffer.m_data.get();
@@ -229,6 +238,9 @@ MBLayoutPtr SequencePacker::PackDenseStream(const StreamBatch& batch, size_t str
             }
         }
     }
+    
+    if (streamIndex == 0)
+        minibatchID.close();
 
     return pMBLayout;
 }

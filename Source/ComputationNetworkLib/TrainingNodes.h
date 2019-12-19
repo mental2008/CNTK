@@ -11,6 +11,7 @@
 #include "InputAndParamNodes.h"
 #include "CPURNGHandle.h"
 #include "../SGDLib/IDistGradAggregator.h"
+#include "Config.h"
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -2123,6 +2124,9 @@ public:
         : GuideFeatureLossNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"featureDim"), configp->Get(L"featureFile"), configp->Get(L"normType"))
     {
         AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
+        const std::wstring weight = configp->Get(L"weight");
+        m_weight = weight;
+        m_samples = 0;
     }
 
     GuideFeatureLossNode(DEVICEID_TYPE deviceId, const wstring& name, size_t featureDim = 256, wstring featureFile = L"", size_t normType = 2)
@@ -2149,18 +2153,41 @@ public:
         if (inputIndex == 0)
         {
             FrameRange fr(InputRef(0).GetMBLayout());
-            auto gradient = InputRef(0).GradientFor(fr);
-            Matrix<ElemType>::AssignScaledDifference(Gradient(), InputRef(0).ValueFor(fr), *m_guideFeature, gradient);
-            gradient *= (ElemType)2 / (InputRef(0).ValueFor(fr).GetNumRows() * InputRef(0).ValueFor(fr).GetNumCols());
+            if (m_normType == 2)
+            {
+                auto gradient = InputRef(0).GradientFor(fr);
+                Matrix<ElemType>::AssignScaledDifference(Gradient(), InputRef(0).ValueFor(fr), *m_guideFeature, gradient);
+                size_t featureDim, minibatchSize;
+                featureDim = InputRef(0).ValueFor(fr).GetNumRows();
+                minibatchSize = InputRef(0).ValueFor(fr).GetNumCols();
+                gradient *= (ElemType)2 * m_weight[Globals::GetEpoch()] / (featureDim * minibatchSize);
+            }
+            else
+            {
+                LogicError("This normalizeType is not supported yet.");
+            }
         }
     }
 
     virtual void /*ComputationNodeNonLooping::*/ ForwardPropNonLooping() override
     {
         FrameRange fr(InputRef(0).GetMBLayout());
-        std::vector<std::size_t> minibatchID = Globals::GetMinibatchID();
-        Globals::ClearMinibatchID();
-        size_t minibatchSize = minibatchID.size();
+        std::vector<std::size_t> minibatchID;
+        size_t minibatchSize = InputRef(0).ValueFor(fr).GetNumCols();
+        ifstream minibatchIDFile("minibatchID.bin", ios::binary | ios::in);
+        if (!minibatchIDFile.is_open())
+            RuntimeError("Failed to open \"minibatchID.bin\".");
+        minibatchIDFile.seekg(m_samples * sizeof(size_t), ios::beg);
+        for (size_t i = 0; i < minibatchSize; ++i)
+        {
+            size_t id;
+            minibatchIDFile.read((char*)&id, sizeof(size_t));
+            minibatchID.push_back(id);
+        }
+        minibatchIDFile.close();
+        if (minibatchID.empty())
+            RuntimeError("MinibatchID is empty.");
+        m_samples += minibatchSize;
         std::vector<ElemType> array;
         array.resize(minibatchSize * m_featureDim);
         for (size_t j = 0; j < minibatchSize; ++j)
@@ -2177,15 +2204,14 @@ public:
         }
         m_guideFeature->SetValue(m_featureDim, minibatchSize, m_deviceId, const_cast<ElemType*>(array.data()), matrixFlagNormal);
 
-        Value().SetValue(0);
         if (m_normType == 2)
         {
-            Value().AssignDifferenceOf(InputRef(0).ValueFor(fr), *m_guideFeature);
-            Value() ^= 2;
-            ElemType loss = Value().SumOfElements() / (ElemType)(minibatchSize * m_featureDim);
-            Matrix<ElemType> temp(1, 1, m_deviceId);
-            temp.SetValue(loss);
-            Value().SetValue(temp);
+            Matrix<ElemType> temp(m_featureDim, minibatchSize, m_deviceId);
+            temp.AssignDifferenceOf(InputRef(0).ValueFor(fr), *m_guideFeature);
+            temp ^= 2;
+            ElemType loss = temp.SumOfElements() * m_weight[Globals::GetEpoch()] / (ElemType)(minibatchSize * m_featureDim);
+            Value().SetValue(loss);
+            // fprintf(stderr, "Epoch: %zu, weight = %f.\n", Globals::GetEpoch(), m_weight[Globals::GetEpoch()]);
         }
         else
         {
@@ -2195,7 +2221,7 @@ public:
 
     virtual void /*ComputationNodeBase::*/ Validate(bool isFinalValidationPass) override
     {
-        ValidateUnaryMap(isFinalValidationPass);
+        ValidateUnaryReduce(isFinalValidationPass, false); // Reduce-to-(1,1) operation
     }
 
     virtual void CopyTo(ComputationNodeBasePtr nodeP, const std::wstring& newName, const CopyNodeFlags flags) const override
@@ -2227,6 +2253,7 @@ public:
         Base::Save(fstream);
         fstream << m_featurePath;
         fstream << m_normType;
+        fstream << m_samples;
     }
 
     void Load(File& fstream, size_t modelVersion) override
@@ -2234,10 +2261,13 @@ public:
         Base::Load(fstream, modelVersion);
         fstream >> m_featurePath;
         fstream >> m_normType;
+        fstream >> m_samples;
     }
 
 protected:
+    floatargvector m_weight;
     size_t m_featureDim;
+    size_t m_samples;
     wstring m_featurePath;
     ifstream m_featureFile;
     size_t m_normType;
