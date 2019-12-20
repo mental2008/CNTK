@@ -13,7 +13,7 @@
 #include <future>
 #include "DataReader.h"
 #include "Reader.h"
-#include "Globals.h"
+#include "../Common/Include/Globals.h"
 
 namespace CNTK {
 
