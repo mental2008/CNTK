@@ -13,7 +13,7 @@
 #include <future>
 #include "DataReader.h"
 #include "Reader.h"
-#include "../Common/Include/Globals.h"
+#include "Globals.h"
 
 namespace CNTK {
 
@@ -117,7 +117,7 @@ public:
 
     virtual void SetRank(size_t rank) const
     {
-        Globals::SetRank(rank);
+        MSR_CNTK::Globals::SetRank(rank);
     }
 
 private:
