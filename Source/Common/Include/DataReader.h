@@ -31,6 +31,7 @@
 #include <string>
 #include <memory>
 #include <unordered_set>
+#include "Globals.h"
 
 // forward-declare these lattice-related types to avoid having to include and pollute everything with lattice-related headers
 namespace msra { namespace dbn {  class latticepair; class latticesource; } }

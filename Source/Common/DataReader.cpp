@@ -15,7 +15,6 @@
 #include "DataReader.h"
 #include "Config.h"
 #include "ScriptableObjects.h"
-#include "Globals.h"
 #include <string>
 
 using namespace std;
